@@ -29,10 +29,12 @@ data/output/experiments/
     environment.json
     build.json
     metrics.json
+    validation.json
+    performance.json
     summary.md
     logs.txt
     artifacts/
-      histograms.csv
+      histogram.csv
       quantiles.csv
       pot_fit.csv
 ```

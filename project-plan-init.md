@@ -162,12 +162,46 @@ The final output will be a clean repository structure:
   /core           # CUDA kernels (.cu)
   /wrappers       # Host C++ code
   /algorithms     # Specific implementations (Optimization, EVT)
+  /reference      # CPU reference implementations
 /data
   /input          # Sample CSV files
-  /output         # Generated results and logs
+  /output
+    /experiments  # All experiment runs (timestamped folders)
+/configs          # Experiment configurations (.json)
+  /research       # Research project configs
 /scripts
   run_benchmark.sh
   validate_accuracy.py  # Standalone script to compare GPU output vs NumPy
+/docs
+  EXPERIMENTS.md         # Experiment structure and provenance spec
+  VALIDATION.md          # Validation strategy and levels
+  /project-plan-docs     # Operational guides (see below)
+  /research_notes        # Research findings and papers
 CMakeLists.txt
 ```
 This structure ensures "pure codes and results" without forcing the user to deal with complex package management systems.
+
+## 8. Operational Documentation & Workflow Guides
+
+To support long-term R&D, the repository includes comprehensive operational guides in `docs/project-plan-docs/`:
+
+### Core Specifications
+*   **`docs/EXPERIMENTS.md`**: Defines experiment structure, provenance capture, and reproducibility standards
+*   **`docs/VALIDATION.md`**: Defines validation levels (0–4), reference implementations, and correctness criteria
+
+### Workflow Guides
+*   **`00-START-HERE.md`**: First-week playbook and core research loop
+*   **`01-RD-PHASES.md`**: Phase gates with clear "done" criteria and priority guidance
+*   **`02-CHECKLISTS.md`**: Copy-paste checklists for common tasks (adding kernels, metrics, committing code)
+*   **`03-ADD-A-MODULE.md`**: Step-by-step guide for integrating new components
+*   **`04-RESEARCH-WORKFLOW.md`**: How to design and run reproducible experiments
+*   **`05-EXPERIMENT-REVIEW.md`**: Quality gates for determining if results are trustworthy/publishable
+*   **`06-PERFORMANCE-PROTOCOL.md`**: Benchmarking standards and regression detection
+*   **`QUICK-REFERENCE.md`**: One-page summary of the entire workflow
+
+These guides ensure that as the project grows, every contributor (including future you) can:
+- Add new modules without breaking existing work
+- Produce research-grade artifacts consistently
+- Validate correctness at multiple levels
+- Track performance and prevent regressions
+- Maintain reproducibility and provenance
