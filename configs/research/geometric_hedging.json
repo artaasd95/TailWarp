@@ -1,0 +1,27 @@
+{
+  "experiment_name": "riemannian_hedging",
+  "description": "Hedge ratio optimization on SPD manifold with correlation uncertainty",
+  "n_samples": 5000000,
+  "seed": 123,
+  "assets": ["underlying", "hedge_instrument"],
+  "covariance_estimation": {
+    "method": "tyler_m_estimator",
+    "manifold_metric": "affine_invariant"
+  },
+  "optimization": {
+    "method": "riemannian_gradient_descent",
+    "max_iter": 1000,
+    "tolerance": 1e-6
+  },
+  "distribution": {
+    "type": "multivariate_student_t",
+    "params": {
+      "nu": 5.0
+    }
+  },
+  "validation": {
+    "compare_to_euclidean": true,
+    "stress_test_scenarios": 100
+  }
+}
+

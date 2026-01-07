@@ -1,0 +1,30 @@
+{
+  "benchmark_name": "kernel_performance_suite",
+  "gpu": "RTX 3060",
+  "kernels": [
+    {
+      "name": "student_t_sampler",
+      "sizes": [1000000, 10000000, 100000000],
+      "params": {"nu": 4.0},
+      "target_throughput_per_sec": 200000000,
+      "memory_budget_mb": 1024
+    },
+    {
+      "name": "cvar_computation",
+      "sizes": [1000000, 10000000],
+      "params": {"alpha": 0.95},
+      "target_time_ms": 10,
+      "memory_budget_mb": 512
+    },
+    {
+      "name": "spd_exp",
+      "sizes": [100, 1000, 10000],
+      "params": {"matrix_dim": 10, "batch": true},
+      "target_time_ms": 5,
+      "memory_budget_mb": 256
+    }
+  ],
+  "repetitions": 10,
+  "warmup_runs": 3
+}
+

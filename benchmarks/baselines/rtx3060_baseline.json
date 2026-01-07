@@ -1,0 +1,18 @@
+{
+  "gpu": "RTX 3060",
+  "cuda_version": "11.8",
+  "date": "2026-01-07",
+  "baselines": {
+    "student_t_10M": {
+      "time_ms": 45.2,
+      "throughput_per_sec": 221238938,
+      "memory_mb": 384
+    },
+    "cvar_10M": {
+      "time_ms": 8.7,
+      "memory_mb": 256
+    }
+  },
+  "notes": "Initial baseline measurements"
+}
+

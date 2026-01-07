@@ -1,0 +1,27 @@
+{
+  "experiment_name": "cvar_position_sizing",
+  "description": "Position sizing under CVaR constraint with Student-t returns",
+  "n_samples": 1000000,
+  "seed": 42,
+  "distribution": {
+    "type": "student_t",
+    "params": {
+      "nu": 4.0,
+      "mu": 0.0,
+      "sigma": 0.02
+    }
+  },
+  "risk_metric": {
+    "type": "cvar",
+    "alpha": 0.95
+  },
+  "constraints": {
+    "max_cvar": 0.05
+  },
+  "output_artifacts": [
+    "metrics.json",
+    "quantiles.csv",
+    "histogram.csv"
+  ]
+}
+
