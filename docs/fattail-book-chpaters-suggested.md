@@ -2,8 +2,6 @@ Reorganized list: TailWarp-focused chapters (removed Raft-LM sections).
 
 ---
 
-### **File 1: Chapters by Project**
-
 #### **Project 2: TailWarp (GPU Simulation & Monte Carlo Framework)**
 - **Chapter 4: Univariate Fat Tails, Level 1, Finite Moments**  
   *Provides heuristics for stochastic volatility in realistic simulations.*
@@ -19,8 +17,6 @@ Reorganized list: TailWarp-focused chapters (removed Raft-LM sections).
   *Methodology for testing maximum drawdowns via parallel prefix scans.*
 
 ---
-
-### **File 2: Reordered Chapters with Project & Lens Context**
 
 **Chapter 4: Univariate Fat Tails, Level 1, Finite Moments**  
 - **Projects:** TailWarp  
