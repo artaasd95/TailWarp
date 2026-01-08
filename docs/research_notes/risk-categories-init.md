@@ -63,7 +63,7 @@ Now let’s walk through each in a philosophical + practical way.
 ### Category 1: Structural / Ruin Risk
 
 **Philosophy:**  
-Everything else is detail if we can die. The first question is: “Is this trade capable of killing me?”
+Everything else is detail if we can die. The first question is: "Is this trade capable of killing me?"
 
 **What this category covers:**  
 Methods that measure how close we are to an unrecoverable state:
@@ -74,9 +74,9 @@ Methods that measure how close we are to an unrecoverable state:
 - Capital impairment vs. account health
 
 **The key question:**  
-“If this bet goes wrong repeatedly, do I survive, or is this game over?”
+"If this bet goes wrong repeatedly, do I survive, or is this game over?"
 
-**Typical methods / models in this bucket (we’re not choosing, just mapping):**  
+**Typical methods / models in this bucket (we're not choosing, just mapping):**  
 - Risk-of-ruin formulas  
 - Capital-at-ruin calculations  
 - Survival probabilities under different betting fractions
@@ -84,17 +84,21 @@ Methods that measure how close we are to an unrecoverable state:
 **Why it matters for us:**  
 This is our master category. Any trade that threatens ruin gets crushed, no matter how good the other categories look.
 
+**Priority:**  
+- Research: **HIGH** (foundational constraint for all sizing decisions)
+- Implementation: **PHASE 2** (requires CVaR + position sizing pipeline first)
+
 ---
 
 ### Category 2: Volatility & Noise Categories
 
 **Philosophy:**  
-Not all volatility is risk. Some is “breathing,” some is an earthquake. We want to distinguish noise from structural turbulence.
+Not all volatility is risk. Some is "breathing," some is an earthquake. We want to distinguish noise from structural turbulence.
 
 **What this category covers:**  
 Methods that describe how much and how prices move:
 
-- “Standard” volatility: standard deviation of returns, historical vol【turn0search2】  
+- "Standard" volatility: standard deviation of returns, historical vol【turn0search2】  
 - Conditional volatility models (GARCH family, EWMA)  
 - Implied volatility (from options, VIX-type indices)  
 - Realized volatility vs. implied vol  
@@ -102,7 +106,7 @@ Methods that describe how much and how prices move:
 - Intraday / microstructure noise
 
 **The key question:**  
-“Is the environment calm, stormy, or deceptively quiet?”
+"Is the environment calm, stormy, or deceptively quiet?"
 
 **Examples of what lives here:**  
 - Simple rolling standard deviation  
@@ -111,14 +115,18 @@ Methods that describe how much and how prices move:
 - Vol-of-vol metrics
 
 **Why it matters:**  
-Pros often treat “low vol = safe.” We treat “low vol = possibly hidden fragility.” This category helps us detect phases and regimes where risk is compressed and may explode.
+Pros often treat "low vol = safe." We treat "low vol = possibly hidden fragility." This category helps us detect phases and regimes where risk is compressed and may explode.
+
+**Priority:**  
+- Research: **MEDIUM** (needed for regime detection and covariance estimation)
+- Implementation: **PHASE 1** (basic vol metrics; GARCH/regimes deferred to Phase 3)
 
 ---
 
 ### Category 3: Downside & Tail Categories
 
 **Philosophy:**  
-We care a lot more about what happens when things go wrong than when they go right. This is where the “real” risk lives.
+We care a lot more about what happens when things go wrong than when they go right. This is where the "real" risk lives.
 
 **What this category covers:**  
 Methods focusing specifically on losses and extreme events:
@@ -131,7 +139,7 @@ Methods focusing specifically on losses and extreme events:
 - Extreme value theory (EVT) models
 
 **The key question:**  
-“When things break, how bad can it get, and how often?”
+"When things break, how bad can it get, and how often?"
 
 **Examples here:**  
 - VaR (parametric, historical, Monte Carlo)  
@@ -140,14 +148,18 @@ Methods focusing specifically on losses and extreme events:
 - EVT-based tail estimators
 
 **Why it matters:**  
-This is the first serious step beyond “volatility = risk.” It aligns with our obsession with ruin and extreme outcomes. It also helps us spot fat tails and asymmetry in the PnL distribution.
+This is the first serious step beyond "volatility = risk." It aligns with our obsession with ruin and extreme outcomes. It also helps us spot fat tails and asymmetry in the PnL distribution.
+
+**Priority:**  
+- Research: **CRITICAL** (core to TailWarp's mission)
+- Implementation: **PHASE 1** (VaR/CVaR/EVT are Gate A & B deliverables)
 
 ---
 
-### Category 4: Drawdown & “Pain” Categories
+### Category 4: Drawdown & "Pain" Categories
 
 **Philosophy:**  
-Humans don’t feel volatility; they feel drawdowns and time under water. Duration of pain often breaks traders more than size of loss.
+Humans don't feel volatility; they feel drawdowns and time under water. Duration of pain often breaks traders more than size of loss.
 
 **What this category covers:**  
 Methods that measure the shape and duration of equity-curve damage:
@@ -160,7 +172,7 @@ Methods that measure the shape and duration of equity-curve damage:
 - Recovery time metrics
 
 **The key question:**  
-“How long and how deep is the pain if I’m wrong, and how fast do I come back?”
+"How long and how deep is the pain if I'm wrong, and how fast do I come back?"
 
 **Examples here:**  
 - Max DD, average DD  
@@ -168,14 +180,18 @@ Methods that measure the shape and duration of equity-curve damage:
 - Ulcer Index, etc.
 
 **Why it matters:**  
-For our “better-than-human” model, we want to quantify not just “how much can I lose” but “how long can I endure this without breaking the system or the strategy?” This is critical for sizing and for deciding when to reduce exposure.
+For our "better-than-human" model, we want to quantify not just "how much can I lose" but "how long can I endure this without breaking the system or the strategy?" This is critical for sizing and for deciding when to reduce exposure.
+
+**Priority:**  
+- Research: **MEDIUM** (important for backtest evaluation)
+- Implementation: **PHASE 2** (after position sizing pipeline; requires equity curve simulation)
 
 ---
 
 ### Category 5: Asymmetry & Convexity Categories
 
 **Philosophy:**  
-This is the core of our “ism”: we want setups that are convex—small downside, large upside. We prefer positions that benefit from disorder, not ones that shatter under it.
+This is the core of our "ism": we want setups that are convex—small downside, large upside. We prefer positions that benefit from disorder, not ones that shatter under it.
 
 **What this category covers:**  
 Methods that compare upside vs downside and capture asymmetry:
@@ -185,10 +201,10 @@ Methods that compare upside vs downside and capture asymmetry:
 - Gain-loss ratio  
 - Skewness (third moment)  
 - Higher-moment measures (asymmetry, tail shape)  
-- “Convexity / curvature” metrics (e.g., option gamma profiles, payoff curvature)
+- "Convexity / curvature" metrics (e.g., option gamma profiles, payoff curvature)
 
 **The key question:**  
-“Does this bet have a skewed payoff where I lose a little if wrong but make a lot if right?”
+"Does this bet have a skewed payoff where I lose a little if wrong but make a lot if right?"
 
 **Examples here:**  
 - Sortino, Omega, Calmar, etc.【turn0search16】  
@@ -200,14 +216,18 @@ This category is the mathematical expression of our philosophy:
 - Prefer convexity (CI > 1)  
 - Avoid concave traps (CI < 1)
 
-Later, we can use methods from this category as the backbone of our “Convexity Score / Index.”
+Later, we can use methods from this category as the backbone of our "Convexity Score / Index."
+
+**Priority:**  
+- Research: **CRITICAL** (defines our core doctrine and preference system)
+- Implementation: **PHASE 2** (requires payoff functions g(x) and scenario analysis)
 
 ---
 
 ### Category 6: Exposure & Leverage Categories
 
 **Philosophy:**  
-Risk is not only about the market; it’s about how much of ourselves we put into the market. Exposure decides how violently risk affects us.
+Risk is not only about the market; it's about how much of ourselves we put into the market. Exposure decides how violently risk affects us.
 
 **What this category covers:**  
 Methods that describe size, leverage, and sensitivity:
@@ -219,7 +239,7 @@ Methods that describe size, leverage, and sensitivity:
 - Contribution to risk (which positions contribute most to portfolio risk)
 
 **The key question:**  
-“How much of my capital is actually exposed, and to what factors?”
+"How much of my capital is actually exposed, and to what factors?"
 
 **Examples here:**  
 - Position sizing metrics, gross exposure %, net exposure %  
@@ -229,12 +249,16 @@ Methods that describe size, leverage, and sensitivity:
 **Why it matters:**  
 This is where risk preference turns into actual constraints. Two identical trades can have totally different risk profiles depending on leverage. This category will be a big part of how the AI controls itself.
 
+**Priority:**  
+- Research: **HIGH** (directly feeds position sizing under CVaR constraints)
+- Implementation: **PHASE 1** (basic sizing; multi-asset risk contribution in Phase 2)
+
 ---
 
 ### Category 7: Liquidity & Market-Structure Categories
 
 **Philosophy:**  
-Risk in theory is one thing. Risk in a thin, panicked market is another. We need to see “where the doors are” and how narrow they are.
+Risk in theory is one thing. Risk in a thin, panicked market is another. We need to see "where the doors are" and how narrow they are.
 
 **What this category covers:**  
 Methods that measure how easily we can enter/exit and how the market structure behaves:
@@ -246,7 +270,7 @@ Methods that measure how easily we can enter/exit and how the market structure b
 - Market tightness, resiliency, depth metrics
 
 **The key question:**  
-“If I need to get out fast, how much will it cost me, and can I even get out?”
+"If I need to get out fast, how much will it cost me, and can I even get out?"
 
 **Examples here:**  
 - Spread metrics, volume-at-price, impact models  
@@ -254,14 +278,18 @@ Methods that measure how easily we can enter/exit and how the market structure b
 - Intraday liquidity indicators
 
 **Why it matters:**  
-Pros sometimes underestimate liquidity risk until it’s too late. Our “better-than-human” model should actively detect situations where liquidity is drying up, creating both danger and opportunity (e.g., forced-selling anomalies).
+Pros sometimes underestimate liquidity risk until it's too late. Our "better-than-human" model should actively detect situations where liquidity is drying up, creating both danger and opportunity (e.g., forced-selling anomalies).
+
+**Priority:**  
+- Research: **LOW** (important but not immediate for geometric methods)
+- Implementation: **PHASE 3+** (requires market microstructure data)
 
 ---
 
 ### Category 8: Behavioral & Perception Categories
 
 **Philosophy:**  
-Humans don’t just respond to “objective” risk; they respond to what they feel risk to be. That distorted perception is itself a source of edge.
+Humans don't just respond to "objective" risk; they respond to what they feel risk to be. That distorted perception is itself a source of edge.
 
 **What this category covers:**  
 Methods that capture biases, emotions, and crowds:
@@ -273,7 +301,7 @@ Methods that capture biases, emotions, and crowds:
 - Behavioral risk scores built from decision patterns (e.g., deviation from rational rules)【turn0search14】
 
 **The key question:**  
-“How is the market (or the trader) perceiving risk right now, and how is that perception distorted?”
+"How is the market (or the trader) perceiving risk right now, and how is that perception distorted?"
 
 **Examples here:**  
 - Sentiment indices, put/call ratios as fear proxies  
@@ -285,7 +313,11 @@ We want our AI to be like a calm psychologist watching a panicked room. This cat
 
 - When pros are too scared (opportunity)  
 - When pros are too calm (fragility)  
-- When the trader (or the crowd) is in “gambling mode”
+- When the trader (or the crowd) is in "gambling mode"
+
+**Priority:**  
+- Research: **MEDIUM** ("better-than-human" anomaly detection)
+- Implementation: **PHASE 3** (requires external sentiment data sources)
 
 ---
 
@@ -304,7 +336,7 @@ Methods that quantify information flows, narratives, and anomalies:
 - Surprise indices, data-dispersion metrics
 
 **The key question:**  
-“What story is the market telling, and what does the underlying data actually say?”
+"What story is the market telling, and what does the underlying data actually say?"
 
 **Examples here:**  
 - Sentiment NLP scores, news volume, disagreement dispersion  
@@ -312,14 +344,18 @@ Methods that quantify information flows, narratives, and anomalies:
 - Regime detection tied to information shocks
 
 **Why it matters:**  
-This is where we catch “anomalies” and “what others cannot see.” It’s the core of our “critical thinking, pattern-hunting” layer: we detect narrative–price dislocations that pros ignore or explain away.
+This is where we catch "anomalies" and "what others cannot see." It's the core of our "critical thinking, pattern-hunting" layer: we detect narrative–price dislocations that pros ignore or explain away.
+
+**Priority:**  
+- Research: **LOW** (powerful but outside current geometric methods focus)
+- Implementation: **PHASE 4+** (requires NLP and external data infrastructure)
 
 ---
 
 ### Category 10: Cross-Asset & Systemic Categories
 
 **Philosophy:**  
-Risk doesn’t live in one instrument. It travels through networks. We need to see how risk propagates.
+Risk doesn't live in one instrument. It travels through networks. We need to see how risk propagates.
 
 **What this category covers:**  
 Methods that look at risk across instruments, markets, and the whole system:
@@ -330,7 +366,7 @@ Methods that look at risk across instruments, markets, and the whole system:
 - Contagion metrics, network-based risk measures【turn0search4】
 
 **The key question:**  
-“If something breaks over there, how does it travel here?”
+"If something breaks over there, how does it travel here?"
 
 **Examples here:**  
 - Correlation, cointegration  
@@ -339,6 +375,10 @@ Methods that look at risk across instruments, markets, and the whole system:
 
 **Why it matters:**  
 Pros often manage each trade or book in isolation. Our AI should see the whole web: where risk is concentrated, where contagion is building, and where one breakdown in one area creates an asymmetric opportunity elsewhere.
+
+**Priority:**  
+- Research: **HIGH** (SPD manifold covariance is core to TailWarp)
+- Implementation: **PHASE 1** (correlation/covariance; copulas/contagion in Phase 3)
 
 ---
 
@@ -357,9 +397,145 @@ We can later define a preference system like:
 - Categories 2,3,4 are used to tune and condition the preference.  
 - Categories 8–10 are used as anomaly detectors and opportunity filters.”
 
-Next logical step (when you’re ready) would be:
+Next logical step (when you're ready) would be:
 
-- For each category, define 1–3 “candidate method families”  
-- Then decide: “Which ones do we want to explore first?” and “How do we combine their outputs into a single preference / conviction score?”
+- For each category, define 1–3 "candidate method families"  
+- Then decide: "Which ones do we want to explore first?" and "How do we combine their outputs into a single preference / conviction score?"
 
-But for now, we have the main thing you asked for: a philosophical map of risk method categories, built from the ideas we’ve developed, not just a random list of formulas.
+But for now, we have the main thing you asked for: a philosophical map of risk method categories, built from the ideas we've developed, not just a random list of formulas.
+
+---
+
+## 4) Implementation Priority Map (TailWarp Context)
+
+This section orders the categories by priority for TailWarp's current geometric methods research focus (Riemannian optimization, heavy-tailed distributions, CVaR-constrained sizing).
+
+### Phase 1 (Foundation: Gates A-B)
+**Critical Path: Tail metrics + Manifold operations + Position sizing**
+
+1. **Category 3: Downside & Tail Categories** (CRITICAL)
+   - VaR/CVaR implementation on GPU
+   - EVT (POT) for tail validation
+   - Heavy-tailed scenario generation (Student-t, α-stable)
+   - *Why first:* Core to every downstream decision; Gate B depends on this
+
+2. **Category 10: Cross-Asset & Systemic Categories** (HIGH)
+   - Correlation/covariance matrices on SPD manifold
+   - Affine-invariant and log-Euclidean metrics
+   - Riemannian distance and projections to PD cone
+   - *Why first:* SPD manifold ops are the geometric foundation; Gate A
+
+3. **Category 6: Exposure & Leverage Categories** (HIGH)
+   - Position sizing under CVaR constraints
+   - Notional/delta exposure tracking
+   - Basic Kelly criterion sizing
+   - *Why first:* Turns risk metrics into actionable constraints; Gate B
+
+4. **Category 2: Volatility & Noise Categories** (MEDIUM - basic only)
+   - Rolling volatility, realized vol
+   - Simple regime flags (low-vol/high-vol)
+   - *Defer:* GARCH and full regime modeling to Phase 3
+   - *Why included:* Needed for covariance estimation inputs
+
+### Phase 2 (Convexity & Robustness: Gates C-D)
+**Focus: Asymmetry detection + Ruin constraints + Robust estimation**
+
+5. **Category 5: Asymmetry & Convexity Categories** (CRITICAL)
+   - Sortino, Omega ratios
+   - Payoff function g(x) framework
+   - Convexity Index (CI) for position ranking
+   - *Why now:* Defines our doctrine; requires payoff simulation from Phase 1
+
+6. **Category 1: Structural / Ruin Risk** (HIGH)
+   - Distance-to-ruin calculations
+   - Survival probabilities under betting fractions
+   - Kelly-fractional sizing with ruin floors
+   - *Why now:* Master constraint layer; requires CVaR + sizing pipeline
+
+7. **Category 4: Drawdown & "Pain" Categories** (MEDIUM)
+   - Max drawdown, average drawdown
+   - Calmar ratio, Ulcer Index
+   - Time-underwater metrics
+   - *Why now:* Backtest evaluation; requires equity curve simulation
+
+### Phase 3 (Better-Than-Human: Gates E+)
+**Focus: Regime blending + Behavioral anomalies**
+
+8. **Category 2: Volatility & Noise (Advanced)** (MEDIUM)
+   - GARCH/EGARCH conditional vol
+   - Regime-switching models
+   - Vol-of-vol, implied vol surfaces
+   - *Why later:* Advanced regime detection for barycenter blending
+
+9. **Category 8: Behavioral & Perception Categories** (MEDIUM)
+   - Put/call ratios, sentiment proxies
+   - Loss aversion metrics from decision patterns
+   - Herding/overreaction indicators
+   - *Why later:* Anomaly detection; requires external data feeds
+
+10. **Category 10: Cross-Asset (Advanced)** (MEDIUM)
+    - Copula models for tail dependence
+    - Contagion metrics, network risk
+    - *Why later:* Extends basic covariance to systemic stress
+
+### Phase 4+ (Future Research)
+**Deferred: Data-intensive and out-of-scope for geometric methods core**
+
+11. **Category 7: Liquidity & Market-Structure** (LOW priority)
+    - Spread, depth-of-book, market impact
+    - *Why deferred:* Requires HFT/microstructure data; orthogonal to geometric methods
+
+12. **Category 9: Narrative & Information-Structure** (LOW priority)
+    - NLP sentiment, news flow, surprise indices
+    - *Why deferred:* Requires text/NLP infrastructure; separate research stream
+
+---
+
+## 5) Priority Summary Table
+
+| Category | Research Priority | Implementation Phase | Gate Dependency |
+|----------|------------------|---------------------|-----------------|
+| **3. Downside & Tail** | CRITICAL | Phase 1 | A, B (VaR/CVaR/EVT) |
+| **10. Cross-Asset & Systemic** | HIGH | Phase 1 | A (SPD manifold) |
+| **6. Exposure & Leverage** | HIGH | Phase 1 | B (CVaR sizing) |
+| **5. Asymmetry & Convexity** | CRITICAL | Phase 2 | C (Convexity Index) |
+| **1. Structural / Ruin** | HIGH | Phase 2 | C (Ruin constraints) |
+| **2. Volatility & Noise (basic)** | MEDIUM | Phase 1 | A (vol inputs) |
+| **4. Drawdown & Pain** | MEDIUM | Phase 2 | C (backtest eval) |
+| **2. Volatility (advanced)** | MEDIUM | Phase 3 | E (regime blending) |
+| **8. Behavioral & Perception** | MEDIUM | Phase 3 | E (anomaly detection) |
+| **10. Cross-Asset (advanced)** | MEDIUM | Phase 3 | E (copulas/contagion) |
+| **7. Liquidity & Market-Structure** | LOW | Phase 4+ | Future |
+| **9. Narrative & Info-Structure** | LOW | Phase 4+ | Future |
+
+---
+
+## 6) Decision Rationale
+
+**Why this ordering?**
+
+1. **TailWarp is a geometric methods project.** Categories 3 (tail metrics) and 10 (SPD manifolds) are the mathematical core. Everything else builds on these.
+
+2. **Research-first workflow.** We validate before extending. Phase 1 establishes the foundation (heavy tails + manifolds + basic sizing). Phase 2 adds our doctrine (convexity + ruin). Phase 3 adds "better-than-human" layers (regimes + behavior).
+
+3. **Gate-driven.** The priority map aligns with the gates in `ideas-plan.md`:
+   - Gate A/B = Phase 1 (manifold toolkit + CVaR pipeline)
+   - Gate C/D = Phase 2 (constraints + convexity + option pricing)
+   - Gate E = Phase 3 (robust regime blending + stress tests)
+
+4. **Data pragmatism.** Categories 7–9 require external data infrastructure (microstructure feeds, NLP) that's orthogonal to the geometric methods core. Defer until core is validated.
+
+5. **Pro-level first, better-than-human second.** Categories 1–7 are what good risk managers use (we pick best-in-class geometric implementations). Categories 8–10 (advanced) are where we surpass humans by making intuition explicit.
+
+---
+
+**Next Steps:**
+
+When ready to move forward:
+1. For each Phase 1 category, define 1–3 candidate method families
+2. Build CPU reference implementations
+3. Implement GPU kernels with validation (Levels 0–4)
+4. Produce experiment artifacts per `EXPERIMENTS.md`
+5. Record baselines per `06-PERFORMANCE-PROTOCOL.md`
+
+This priority map is the "seeking" structure you requested: a principled classification aligned with TailWarp's mission, not an arbitrary list.
