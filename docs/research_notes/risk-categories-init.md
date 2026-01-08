@@ -539,3 +539,31 @@ When ready to move forward:
 5. Record baselines per `06-PERFORMANCE-PROTOCOL.md`
 
 This priority map is the "seeking" structure you requested: a principled classification aligned with TailWarp's mission, not an arbitrary list.
+
+---
+
+## Appendix: Book & Paper Mapping to Risk Categories (simple)
+
+Simple mapping of the suggested book chapters, initial papers, and `ideas-plan.md` sections to the risk categories above.
+
+- **Book mappings (from `fattail-book-chpaters-suggested.md`):**
+  - Chapter 4 (Univariate Fat Tails, Level 1) -> **Category 2** (Volatility & Noise) and **Category 3** (Downside & Tail) — stochastic-vol heuristics; why std dev fails.
+  - Chapter 5 (Subexponentials & Power Laws) -> **Category 3** (Downside & Tail) — heavy-tailed distribution kernels.
+  - Chapter 6 (Thick Tails in Higher Dimensions) -> **Category 10** (Cross-Asset & Systemic) — multi-asset correlated shocks.
+  - Chapter 8 (How Much Data Do You Need? κ metric) -> **Category 3** (Downside & Tail) — sample sizing / stability.
+  - Chapter 9 (Extreme Values and Hidden Tails) -> **Category 3** (Downside & Tail) — EVT methods.
+  - Chapter 10 ("Diagnosing the SP500") -> **Category 4** (Drawdown & "Pain") — max drawdown analysis.
+  - Chapter 11.2 (Psychology of tail probability) -> **Category 8** (Behavioral & Perception).
+  - Chapter 23 (Lindy as distance from an absorbing barrier) -> **Category 1** (Structural / Ruin Risk).
+  - Chapter 29 (Portfolios should never rely on correlation) -> **Category 10** (Cross-Asset & Systemic).
+
+- **Papers / initial readings (from `papers-to-init.md`):**
+  - Natural gradient / geometry papers -> **Category 10** (manifold ops) and **Category 5** (Asymmetry & Convexity) for optimization on manifolds.
+  - Riemannian metric learning / statistical geometry -> **Category 10** and **Category 6** (Exposure) where metric learning informs risk contributions.
+
+- **`ideas-plan.md` items (quick map):**
+  - SPD manifold ops, Tyler's M-estimator, Riemannian barycenters -> **Category 10** (Cross-Asset & Systemic) and **Category 3** (Downside & Tail) for robust covariance and scenario generation.
+  - CVaR-constrained sizing, scenario CVaR pipeline -> **Category 3** (Downside & Tail) and **Category 6** (Exposure & Leverage).
+  - Geodesic convex constraints, hedging under correlation uncertainty -> **Category 5** (Asymmetry & Convexity) and **Category 1** (Structural / Ruin) for constraint enforcement.
+
+This mapping is intentionally simple — use it to prioritize reading and to link book chapters / papers to the categories when planning experiments.
