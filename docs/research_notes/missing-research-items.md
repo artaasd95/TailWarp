@@ -12,3 +12,10 @@ chapter 3.10, fat tails
 We cannot predict or find the probability of X because the small probabilities are hard to determine, instead we want a nonlinear transformation of the distribution of X to get F(X).
 "Convext transformation of random variables" Van Zwet, 1964
 !Important, this section is very important we can implement it or search about it or use ML functions and autoencoders or tranformers for this.
+
+
+Fat tail book:
+4.4.5:
+We should retire standard deviation and use Mean deviation!
+The reasoning seems right! at least it worth implementation and testing!
+We should consider this.
