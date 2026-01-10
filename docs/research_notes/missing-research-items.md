@@ -5,3 +5,10 @@ This will cause the VaR and loss of wealth, that is correct but the problem here
 Because if we are waiting for the underlying asset to fail, and it does not, the position will be failed, so we should seek the bubble detection too! because we want to buy the volatility, leverage it as an asset to our profit!
 So bubble detection models, inflation models, and short term volatility indexes are our best friends not trend!
 Think and work on bubble detection, edge detection, and possible regime change detection on lower time frames.
+
+
+Confusion of X and F(X):
+chapter 3.10, fat tails
+We cannot predict or find the probability of X because the small probabilities are hard to determine, instead we want a nonlinear transformation of the distribution of X to get F(X).
+"Convext transformation of random variables" Van Zwet, 1964
+!Important, this section is very important we can implement it or search about it or use ML functions and autoencoders or tranformers for this.
