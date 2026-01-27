@@ -1,405 +1,362 @@
-# 1. Key sources for the metrics
 
-These are the main external sources I’m relying on, beyond your internal docs:
 
-- TailWarp / internal docs:
-  - remarks-on-MDA.md – MDA, tail index α, Wittgenstein’s Ruler heuristic, κ metric, shadow mean, short-dated skew, quasi-static hedging, Lucretius fallacy, Karamata-point pricing, MAD vs STD, etc.
-  - risk-categories-init.md & ten-lenses.md – the 10-lens risk framework and chapter mappings to Taleb / Gatheral.
-  - chapter-lens-mapping.md, fattail-book-chapters-suggested.md, fattail-volatility-surface-books.md, papers-to-init.md – chapter and paper mappings.
+# The Expanded Risk Framework: TailWarp Edition
 
-- EVT / fat-tails:
-  - Tail index and EVT / MDA:
-    - General EVT references, tail index estimation, Hill estimator, POT, and Maximum Domains of Attraction (Fréchet, Gumbel, Weibull)【turn4search0】【turn4search1】【turn4search3】【turn4search9】.
-    - Tail index estimation and Hill-type estimators for Pareto tails【turn4search5】【turn4search8】.
-  - κ metric:
-    - Taleb, “How Much Data Do You Need? An operational, pre-asymptotic metric for fat-tailedness” – defines κ∈[0,1] measuring fat-tailedness / sample-size requirement【turn4search10】【turn4search14】.
-  - Shadow mean / shadow moments:
-    - Taleb’s “Statistical Consequences of Fat Tails” and related work emphasize that under fat tails the sample mean is unstable and underestimates the true mean, and introduces “shadow moments” via a dual distribution and EVT to estimate means in apparently infinite-mean settings【turn5search17】【turn5search18】.
-    - Pareto mean formula E[X]=L·α/(α−1) for α>1 is standard【turn5search5】.
-  - Wittgenstein’s Ruler heuristic (reject Gaussian on huge “sigma” events) is framed in your docs; Taleb’s broader work criticizes VaR and Gaussian assumptions and supports the practice of abandoning Gaussian models after extreme moves【turn2search15】.
-
-- Drawdown & performance ratios:
-  - Ulcer Index (drawdown-based downside risk measure, by Peter Martin & Byron McCann)【turn1search15】【turn1search16】【turn1search17】.
-  - Sortino Ratio and downside deviation【turn3search0】【turn3search2】【turn3search3】.
-  - Omega Ratio (probability-weighted gains vs losses for a threshold)【turn3search5】【turn3search6】【turn3search9】.
-  - Calmar Ratio (annual return divided by maximum drawdown)【turn3search10】【turn3search11】【turn3search12】.
-  - Sterling Ratio (return divided by average drawdown)【turn3search15】【turn3search16】【turn3search18】.
-
-- Systemic / network / leverage:
-  - CoVaR – systemic risk measure: change in VaR of the financial system conditional on an institution’s distress【turn0search0】【turn0search1】【turn0search3】【turn0search4】.
-  - DebtRank – network-based systemic impact and contagion in financial networks【turn0search5】【turn0search6】【turn0search8】【turn0search9】.
-  - Leverage cycles – Geanakoplos’ work on equilibrium leverage and its role in bubbles and crises【turn1search0】【turn1search1】【turn1search2】【turn1search3】.
-
-- Liquidity & microstructure:
-  - Liquidity-Adjusted VaR (LVaR) – extends VaR with a liquidity component (bid–ask spreads, depth), going back to Bangia, Diebold, Schuermann & Stroughair【turn0search15】【turn0search16】【turn0search18】【turn0search19】.
-  - VPIN (Volume-Synchronized Probability of Informed Trading) – flow toxicity metric; Easley, López de Prado, O’Hara【turn0search10】【turn0search11】【turn0search12】【turn0search13】【turn0search14】.
-  - Market impact and microstructure-based realized volatility (Engle & Zheng)【turn2search9】.
-  - Bid–ask spread / liquidity measures for FX specifically【turn2search14】.
-
-- Decision & behavioral / model risk:
-  - Knightian uncertainty – risk vs unmeasurable uncertainty; Knight’s Risk, Uncertainty and Profit, and modern overviews【turn1search5】【turn1search6】【turn1search7】【turn1search8】【turn1search9】.
-  - Model risk – Morini “Understanding and Managing Model Risk”, with a comprehensive taxonomy for model risk in pricing and risk management【turn1search10】【turn1search11】【turn1search12】.
-  - Taleb’s Logic of Risk Taking and other pieces on repeated exposure and tail risks【turn2search18】.
-
-- Lower-timeframe (LTF) / no-volume (FX) proxies:
-  - Range-based volatility estimators (Parkinson, Garman–Klass, Rogers–Satchell, Yang–Zhang etc.) using only OHLC prices【turn2search0】【turn2search1】【turn2search2】【turn2search3】【turn2search8】.
-  - Realized volatility approaches and high-frequency FX risk studies using quote/tick data rather than volume【turn2search9】【turn2search11】【turn2search13】【turn2search14】.
-
-Now, with those in hand, I’ll consolidate categories and methods.
-
----
-
-# 2. Consolidated risk categories & methods (with sources)
-
-I’ll stick to your 10-lens structure, add missing methods, and emphasize:
-
-- Short-term risks (intraday, gaps, LTF behavior)  
-- Systemic and decision-making risks  
-- FX / no-volume metrics (OHLC, tick, spread-based)
-
-For each method: short explanation + key sources.
-
----
+This consolidated framework categorizes all identified methods (existing from docs + new additions) into the 10 Lenses.
+# 2. Risk Lenses
 
 ### Lens 1 – Structural / Ruin Risk
+**Focus:** Survival, absorbing barriers, and the probability of system termination.
 
-1) Risk of Ruin (RoR)  
-   - What it is: Probability of hitting capital zero or a pre-defined absorbing barrier (e.g., margin call) over a horizon.  
-   - Why: Captures whether a strategy can survive repeated adverse bets.  
-   - Sources: Classic risk-of-ruin formulas; related to Taleb’s ruin/absorbing-barrier framing in “Statistical Consequences of Fat Tails” (Ch. 23, Lindy as distance from absorbing barrier)【turn5search18】.
+**Risk of Ruin (RoR)**
+*   **What it is:** Probability of hitting capital zero or a pre-defined absorbing barrier (e.g., margin call) over a horizon.
+*   **Why:** Captures whether a strategy can survive repeated adverse bets.
+*   **Sources:** Classic risk-of-ruin formulas; related to Taleb’s ruin/absorbing-barrier framing in “Statistical Consequences of Fat Tails” (Ch. 23, Lindy as distance from absorbing barrier)【turn5search18】.
 
-2) Absorbing Barriers / Ruin State  
-   - What it is: Hard constraint that ends the game (e.g., portfolio liquidation, regulatory shutdown).  
-   - Why: TailWarp wants to treat ruin as a boundary condition, not just another tail event.  
-   - Sources: Taleb Ch. 23 (Lindy as distance from an absorbing barrier) in your docs【turn5search18】.
+**Absorbing Barriers / Ruin State**
+*   **What it is:** Hard constraint that ends the game (e.g., portfolio liquidation, regulatory shutdown).
+*   **Why:** TailWarp wants to treat ruin as a boundary condition, not just another tail event.
+*   **Sources:** Taleb Ch. 23 (Lindy as distance from an absorbing barrier) in your docs【turn5search18】.
 
-3) Solvency Distance / Distance to Ruin  
-   - What it is: How many CVaR-scale losses you can take before hitting the ruin barrier.  
-   - Why: Translates abstract ruin probability into a budget-like metric.  
-   - Sources: Conceptually tied to CVaR-based constraints (Rockafellar & Uryasev style EVT/VaR work) and ruin theory in TailWarp’s own design.
+**Survival Probability**
+*   **What it is:** The inverse of ruin; calculating the likelihood of an entity or strategy persisting over $N$ periods under stochastic shocks.
+*   **Why:** A complementary view to ruin; focuses on longevity rather than termination.
+
+**Solvency Distance / Distance to Ruin**
+*   **What it is:** How many CVaR-scale losses you can take before hitting the ruin barrier.
+*   **Why:** Translates abstract ruin probability into a budget-like metric.
+*   **Sources:** Conceptually tied to CVaR-based constraints (Rockafellar & Uryasev style EVT/VaR work) and ruin theory in TailWarp’s own design.
 
 ---
 
 ### Lens 2 – Volatility & Noise (incl. LTF, no-volume FX)
+**Focus:** Distinguishing "breathing" from "earthquakes" and regime detection.
 
-4) Rolling Close-Close Volatility (LTF)  
-   - What it is: Standard deviation of returns over short windows (e.g., 5m, 15m, 1h).  
-   - Why: Basic, but heavily misused under fat tails (Taleb strongly criticizes over-reliance on σ)【turn2search15】.  
-   - Sources: Standard textbooks; also general discussions on realized volatility proxies【turn2search8】.
+**Stochastic Volatility Models**
+*   **What it is:** (Gatheral Ch 1) Modeling volatility itself as a random variable rather than constant.
+*   **Why:** Recognizes that volatility clusters and evolves, challenging the constant-vol assumption of basic models.
+*   **Sources:** Gatheral "The Volatility Surface".
 
-5) Range-Based Volatility Estimators (Parkinson, Garman–Klass, Rogers–Satchell, Yang–Zhang)  
-   - What it is: Volatility estimators that use OHLC only (no volume), exploiting high–low price range.  
-   - Why: Ideal for FX (no volume) and for LTF bars where only OHLC is available. They’re more efficient than close-close in many conditions【turn2search1】【turn2search3】【turn2search8】.  
-   - Sources:  
-     - Parkinson estimator; Garman–Klass; Rogers–Satchell; Yang–Zhang – standard range-based estimators【turn2search0】【turn2search1】【turn2search8】.  
-     - Studies showing range-based estimators are competitive with high-frequency realized volatility for short-term forecasting【turn2search3】【turn2search6】.
+**Rolling Close-Close Volatility (LTF)**
+*   **What it is:** Standard deviation of returns over short windows (e.g., 5m, 15m, 1h).
+*   **Why:** Basic, but heavily misused under fat tails (Taleb strongly criticizes over-reliance on σ).
+*   **Sources:** Standard textbooks; also general discussions on realized volatility proxies【turn2search15】.
 
-6) Realized Volatility (Tick/Quote-Based) for FX  
-   - What it is: Sum of squared intraday returns using tick or mid-quote data, to estimate volatility over short horizons without volume.  
-   - Why: More precise for LTF risk; can be used where trades aren’t available but quotes are.  
-   - Sources:  
-     - Engle & Zheng’s “A Microstructure Estimate of Realized Volatility”【turn2search9】.  
-     - FX-specific high-frequency risk assessment (e.g., USD/JPY minute-level risk)【turn2search11】【turn2search14】.
+**Pseudo-Stochastic Volatility (Power-Law Masquerading)**
+*   **What it is:** (Taleb Ch 5.6) Recognizing that a constant power-law tail can look like changing volatility regimes.
+*   **Why:** Prevents false model switches; avoids overfitting "regimes" when tails alone explain observed patterns.
+*   **Sources:** Taleb Ch. 5.6 (Pseudo-stochastic volatility: an investigation) in your docs【turn5search18】.
 
-7) Regime Detection via Volatility & Tail State (κ, Hill α)  
-   - What it is: Classify time periods into “calm” vs “stormy” regimes based on volatility, tail index, and κ.  
-   - Why: Helps adapt risk behavior and distinguish noise from structural turbulence in LTF data.  
-   - Sources:  
-     - κ metric (Taleb 2019) for fat-tailedness / data-sufficiency【turn4search10】【turn4search14】.  
-     - Tail index / Hill estimator literature【turn4search3】【turn4search5】【turn4search9】.
+**Realized vs. Implied Volatility Gap**
+*   **What it is:** The spread between historical movement and market-priced expectations; a widening gap indicates impending structural change.
+*   **Why:** Signals when market pricing is diverging from realized reality, often a precursor to regime shifts.
 
-8) Microstructure Noise vs Signal  
-   - What it is: Separating true price movements from bid–ask bounce, discrete ticks, and quote noise.  
-   - Why: Critical for LTF FX; noise can masquerade as volatility or hide tail risk.  
-   - Sources: Microstructure literature on realized vol and noise (Engle & Zheng, etc.)【turn2search9】【turn2search13】.
+**Regime Detection (Markov Switching)**
+*   **What it is:** Identifying when the market shifts between "calm" (low variance) and "storm" (high variance/kurtosis) states.
+*   **Why:** Helps adapt risk behavior and distinguish noise from structural turbulence in LTF data.
+*   **Sources:** κ metric (Taleb 2019) for fat-tailedness / data-sufficiency【turn4search10】【turn4search14】.
 
-9) Pseudo-Stochastic Volatility (Power-Law Masquerading)  
-   - What it is: Constant power-law tails can look like stochastic volatility regimes (Taleb Ch. 5.6).  
-   - Why: Avoid overfitting “regimes” when tails alone explain observed patterns.  
-   - Sources: Taleb Ch. 5.6 (Pseudo-stochastic volatility: an investigation) in your docs.
+**Range-Based Volatility Estimators (Parkinson, Garman–Klass, Rogers–Satchell, Yang–Zhang)**
+*   **What it is:** Volatility estimators that use OHLC only (no volume), exploiting high–low price range.
+*   **Why:** Ideal for FX (no volume) and for LTF bars where only OHLC is available. They’re more efficient than close-close in many conditions.
+*   **Sources:** Parkinson estimator; Garman–Klass; Rogers–Satchell; Yang–Zhang – standard range-based estimators【turn2search0】【turn2search1】【turn2search8】.
 
-10) Short-Dated Skew & Jump Diagnostic  
-    - What it is: Monitoring far-OTM option prices vs ATM as T→0 to detect jump-diffusion / fat-tail dynamics.  
-    - Why: In LTF, standard diffusion models fail; skew explosion signals jumps / Fréchet regime.  
-    - Sources: Gatheral “The Volatility Surface”, esp. short-dated behavior and adding jumps【turn0search0】【turn0search5】 (implied from your mappings).
+**Realized Volatility (Tick/Quote-Based) for FX**
+*   **What it is:** Sum of squared intraday returns using tick or mid-quote data, to estimate volatility over short horizons without volume.
+*   **Why:** More precise for LTF risk; can be used where trades aren’t available but quotes are.
+*   **Sources:** Engle & Zheng’s “A Microstructure Estimate of Realized Volatility”【turn2search9】; FX-specific high-frequency risk assessment【turn2search11】.
+
+**Microstructure Noise vs Signal**
+*   **What it is:** Separating true price movements from bid–ask bounce, discrete ticks, and quote noise.
+*   **Why:** Critical for LTF FX; noise can masquerade as volatility or hide tail risk.
+*   **Sources:** Microstructure literature on realized vol and noise (Engle & Zheng, etc.)【turn2search9】.
+
+**Short-Dated Skew & Jump Diagnostic**
+*   **What it is:** Monitoring far-OTM option prices vs ATM as $T \to 0$ to detect jump-diffusion / fat-tail dynamics.
+*   **Why:** In LTF, standard diffusion models fail; skew explosion signals jumps / Fréchet regime.
+*   **Sources:** Gatheral “The Volatility Surface”, esp. short-dated behavior and adding jumps.
 
 ---
 
 ### Lens 3 – Downside & Tail Risks
+**Focus:** Extreme loss estimation and "Tail" behavior (not just average volatility).
 
-11) Value at Risk (VaR) & Conditional VaR (CVaR / Expected Shortfall)  
-    - What it is: VaR = quantile of loss distribution; CVaR = average loss beyond VaR.  
-    - Why: CVaR is coherent and better suited for fat tails; central to TailWarp Gates A/B.  
-    - Sources:  
-      - Standard QRM/EVT references (e.g., Haugh’s EVT notes)【turn4search1】【turn4search3】.  
-      - Taleb’s discussion of VaR & CVaR (Ch. 2.2.19) in your docs.
+**Value at Risk (VaR) & Conditional VaR (CVaR / Expected Shortfall)**
+*   **What it is:** VaR = quantile of loss distribution; CVaR = average loss beyond VaR.
+*   **Why:** CVaR is coherent and better suited for fat tails; central to TailWarp Gates A/B.
+*   **Sources:** Standard QRM/EVT references (e.g., Haugh’s EVT notes)【turn4search1】; Taleb’s discussion of VaR & CVaR (Ch. 2.2.19) in your docs【turn5search18】.
 
-12) Maximum Domain of Attraction (MDA) Diagnosis (Fréchet vs Gumbel vs Weibull)  
-    - What it is: Determining whether the distribution of extremes is Fréchet (power-law fat tails), Gumbel (light tails), or Weibull (bounded).  
-    - Why: Decides whether Gaussian/EVT assumptions are valid.  
-    - Sources:  
-      - Standard EVT textbooks – MDA classification and tail diagnostics【turn4search0】【turn4search1】【turn4search3】【turn4search4】.
+**Maximum Domain of Attraction (MDA) Diagnosis (Fréchet vs Gumbel vs Weibull)**
+*   **What it is:** Determining whether the distribution of extremes is Fréchet (power-law fat tails), Gumbel (light tails), or Weibull (bounded).
+*   **Why:** Decides whether Gaussian/EVT assumptions are valid.
+*   **Sources:** Standard EVT textbooks – MDA classification and tail diagnostics【turn4search0】【turn4search3】.
 
-13) Tail Index α Estimation (Hill, POT, GPD)  
-    - What it is: Estimating α where survival tail ≈ x^−α; used via Hill estimator or Peaks-Over-Threshold (GPD).  
-    - Why: α drives all tail-based pricing and risk metrics, including shadow mean and Karamata-point pricing.  
-    - Sources:  
-      - Hill estimator and tail index estimation literature【turn4search5】【turn4search8】【turn4search9】.  
-      - TailWarp’s EVT pipeline.
+**Tail Index ($\alpha$) Estimation (Hill, POT, GPD)**
+*   **What it is:** Estimating $\alpha$ where survival tail $\approx x^{-\alpha}$; used via Hill estimator or Peaks-Over-Threshold (GPD).
+*   **Why:** $\alpha$ drives all tail-based pricing and risk metrics, including shadow mean and Karamata-point pricing.
+*   **Sources:** Hill estimator and tail index estimation literature【turn4search5】【turn4search9】.
 
-14) κ Metric for Data Sufficiency  
-    - What it is: Pre-asymptotic metric of fat-tailedness, κ∈[0,1]; higher κ means need more data for stable mean estimation.  
-    - Why: Tells you whether LTF backtests (e.g., 3 months of 5m data) are even close to stable.  
-    - Sources: Taleb “How Much Data Do You Need? An operational, pre-asymptotic metric for fat-tailedness”【turn4search10】【turn4search14】.
+**$\kappa$ Metric for Data Sufficiency**
+*   **What it is:** Pre-asymptotic metric of fat-tailedness, $\kappa \in [0,1]$; higher $\kappa$ means need more data for stable mean estimation.
+*   **Why:** Tells you whether LTF backtests (e.g., 3 months of 5m data) are even close to stable.
+*   **Sources:** Taleb “How Much Data Do You Need? An operational, pre-asymptotic metric for fat-tailedness”【turn4search10】【turn4search14】.
 
-15) Shadow Mean / Shadow Moments  
-    - What it is: Estimating the true (often hidden or “shadow”) mean of a fat-tailed process via EVT / dual distributions, instead of the biased sample mean.  
-    - Why: In fat-tailed environments, the sample mean severely underestimates the true mean and risk of rare events.  
-    - Sources:  
-      - “On the shadow moments of apparently infinite-mean distributions” (Bree & Taleb)【turn5search17】.  
-      - Taleb “Statistical Consequences of Fat Tails” emphasizes bias of sample mean and use of EVT-based estimators【turn5search18】.  
-      - Pareto mean formula E[X]=L·α/(α−1) for α>1【turn5search5】.
+**Shadow Mean / Shadow Moments**
+*   **What it is:** Estimating the true (often hidden or “shadow”) mean of a fat-tailed process via EVT / dual distributions, instead of the biased sample mean.
+*   **Why:** In fat-tailed environments, the sample mean severely underestimates the true mean and risk of rare events.
+*   **Sources:** “On the shadow moments of apparently infinite-mean distributions” (Bree & Taleb)【turn5search17】; Pareto mean formula $E[X]=L \cdot \alpha/(\alpha-1)$ for $\alpha>1$【turn5search5】.
 
-16) Gap Risk (Jump-to-Ruin, Jumps Over Stops)  
-    - What it is: Risk that price gaps past stop-loss levels; especially relevant for LTF and overnight moves.  
-    - Why: Dynamic delta-hedging and standard stops fail under jumps.  
-    - Sources:  
-      - Gatheral Ch. 5 (Adding Jumps)【turn0search5】.  
-      - Jump-diffusion literature in EVT and options pricing【turn4search3】.
+**Gap Risk (Jump-to-Ruin, Jumps Over Stops)**
+*   **What it is:** Risk that price gaps past stop-loss levels; especially relevant for LTF and overnight moves.
+*   **Why:** Dynamic delta-hedging and standard stops fail under jumps.
+*   **Sources:** Gatheral Ch. 5 (Adding Jumps)【turn0search5】; Jump-diffusion literature in EVT and options pricing【turn4search3】.
 
-17) Jump-Diffusion Models  
-    - What it is: Combining Brownian diffusion with Poisson-driven jumps; used for more realistic short-dated and LTF modeling.  
-    - Why: Necessary to match observed skew and tail behavior in LTF options.  
-    - Sources: Gatheral’s “Adding Jumps” chapter【turn0search5】.
+**Jump-Diffusion Models**
+*   **What it is:** Combining Brownian diffusion with Poisson-driven jumps; used for more realistic short-dated and LTF modeling.
+*   **Why:** Necessary to match observed skew and tail behavior in LTF options.
+*   **Sources:** Gatheral’s “Adding Jumps” chapter.
 
-18) Tail Risk Constraints & Barbell (Convexity via Tails)  
-    - What it is: Formulating constraints (e.g., CVaR bounds, maximum loss) to favor strategies with long-tail convexity (barbell).  
-    - Why: Turns tail-awareness into explicit optimization constraints.  
-    - Sources: Taleb Ch. 30 (Tail Risk Constraints and Maximum Entropy) in your docs.
+**Tail Risk Constraints & Barbell (Convexity via Tails)**
+*   **What it is:** Formulating constraints (e.g., CVaR bounds, maximum loss) to favor strategies with long-tail convexity (barbell).
+*   **Why:** Turns tail-awareness into explicit optimization constraints.
+*   **Sources:** Taleb Ch. 30 (Tail Risk Constraints and Maximum Entropy) in your docs【turn5search18】.
 
 ---
 
-### Lens 4 – Drawdown & Pain
+### Lens 4 – Drawdown & "Pain" Categories
+**Focus:** The psychological and capital reality of being underwater.
 
-19) Maximum Drawdown (MDD)  
-    - What it is: Largest peak-to-trough decline in equity.  
-    - Why: Core “pain” metric, central to strategy evaluation and FX money management.  
-    - Sources: Standard risk literature; Taleb Ch. 10 & 10.2.2 on maximum drawdowns.
+**Maximum Drawdown (MDD)**
+*   **What it is:** Largest peak-to-trough decline in equity.
+*   **Why:** Core “pain” metric, central to strategy evaluation and FX money management.
+*   **Sources:** Standard risk literature; Taleb Ch. 10 & 10.2.2 on maximum drawdowns.
 
-20) Average Drawdown & Drawdown Duration  
-    - What it is: Mean size and mean time spent under high-water mark.  
-    - Why: Capture chronic “underwater” stress, not just one-off crash.  
-    - Sources: Drawdown analysis literature; used in Calmar/Sterling/Ulcer context【turn3search12】【turn3search15】.
+**Average Drawdown & Drawdown Duration**
+*   **What it is:** Mean size and mean time spent under high-water mark.
+*   **Why:** Capture chronic “underwater” stress, not just one-off crash.
+*   **Sources:** Drawdown analysis literature; used in Calmar/Sterling/Ulcer context【turn3search12】.
 
-21) Ulcer Index  
-    - What it is: Root-mean-square of percentage drawdowns; emphasizes both depth and duration of downside.  
-    - Why: More aligned with experienced pain than volatility.  
-    - Sources: Peter Martin & Byron McCann; standard references【turn1search15】【turn1search16】【turn1search17】.
+**Ulcer Index**
+*   **What it is:** Root-mean-square of percentage drawdowns; emphasizes both depth and duration of downside.
+*   **Why:** More aligned with experienced pain than volatility.
+*   **Sources:** Peter Martin & Byron McCann; standard references【turn1search15】【turn1search16】.
 
-22) Calmar Ratio  
-    - What it is: Annualized return divided by maximum drawdown.  
-    - Why: Simple, intuitive risk-adjusted measure focused on worst-case drawdown.  
-    - Sources: Investopedia and practitioner overviews【turn3search10】【turn3search11】【turn3search12】.
+**Calmar Ratio**
+*   **What it is:** Annualized return divided by maximum drawdown.
+*   **Why:** Simple, intuitive risk-adjusted measure focused on worst-case drawdown.
+*   **Sources:** Investopedia and practitioner overviews【turn3search10】【turn3search11】.
 
-23) Sterling Ratio  
-    - What it is: Return divided by average annual drawdown (sometimes with a 10% shift).  
-    - Why: Emphasizes average drawdown instead of just max drawdown; less sensitive to a single crash.  
-    - Sources: Sterling ratio overviews【turn3search15】【turn3search16】【turn3search18】.
+**Sterling Ratio**
+*   **What it is:** Return divided by average annual drawdown (sometimes with a 10% shift).
+*   **Why:** Emphasizes average drawdown instead of just max drawdown; less sensitive to a single crash.
+*   **Sources:** Sterling ratio overviews【turn3search15】【turn3search18】.
 
-24) Pain Index / Integrated Drawdown  
-    - What it is: Integral of drawdown over time; measures total “suffering.”  
-    - Why: Useful to compare strategies with similar MDD but very different recovery paths.  
-    - Sources: Closely related to Ulcer Index and drawdown-based metrics【turn1search17】【turn3search18】.
+**Pain Index / Integrated Drawdown**
+*   **What it is:** Integral of drawdown over time; measures total “suffering.”
+*   **Why:** Useful to compare strategies with similar MDD but very different recovery paths.
+*   **Sources:** Closely related to Ulcer Index and drawdown-based metrics【turn3search18】.
 
-25) Recovery Factor / Recovery Time  
-    - What it is: Average or maximum time to return to a new equity high after a drawdown.  
-    - Why: Influences psychological capital and ability to redeploy capital.  
-    - Sources: Practitioner risk literature (closely related to Calmar/Sterling/Ulcer context).
-
----
-
-### Lens 5 – Asymmetry & Convexity
-
-26) Convexity Index (CI) / Payoff g(x) Convexity  
-    - What it is: A score quantifying curvature of payoff g(x); CI>1 means favorable convexity, CI<1 concave exposure.  
-    - Why: Central to your “convexity hunter” doctrine and TailWarp’s optimization layer.  
-    - Sources: Internal TailWarp design; Taleb’s “X vs F(X): exposures to X confused with knowledge about X” (Ch. 3.10).
-
-27) Sortino Ratio & Downside Deviation  
-    - What it is: Sharpe-like ratio but using only downside deviation instead of total volatility.  
-    - Why: Focuses on harmful volatility; more consistent with convex, fat-tail view.  
-    - Sources: Sortino ratio and downside deviation definitions【turn3search0】【turn3search2】【turn3search3】.
-
-28) Omega Ratio  
-    - What it is: Probability-weighted ratio of gains vs losses relative to a threshold return.  
-    - Why: Uses the full return distribution; especially good for non-Gaussian, asymmetric payoffs.  
-    - Sources: Keating & Shadwick; Wikipedia and overviews【turn3search5】【turn3search6】【turn3search9】.
-
-29) Skewness & Higher Moments  
-    - What it is: Third moment (skewness) and fourth moment (kurtosis) of returns.  
-    - Why: Captures asymmetry and tail weight beyond volatility; important for fat-tail and convexity analysis.  
-    - Sources: Standard risk / EVT textbooks【turn4search3】【turn4search9】.
-
-30) Karamata-Point Pricing (Tail-Only Relative Pricing)  
-    - What it is: Using tail index α and a liquid “anchor” option to price deeper tail options, ignoring the body of the distribution.  
-    - Why: In Fréchet MDA, beyond a point (Karamata point) only the tail index matters; reduces model dependence.  
-    - Sources: TailWarp MDA/EVT notes; EVT literature on power-law tails【turn4search3】【turn4search9】.
-
-31) Shadow Greeks (Tail-Adjusted Sensitivities)  
-    - What it is: Option Greeks computed under shadow moments / heavy-tailed assumptions rather than Gaussian vol.  
-    - Why: Standard delta/gamma under Gaussian tail assumptions can severely misstate tail exposures.  
-    - Sources: Conceptual extension of EVT-based pricing and tail-index adjustments; Taleb’s “Unique Measure” and options under power laws【turn5search18】.
+**Recovery Factor / Recovery Time**
+*   **What it is:** Average or maximum time to return to a new equity high after a drawdown.
+*   **Why:** Influences psychological capital and ability to redeploy capital.
+*   **Sources:** Practitioner risk literature (closely related to Calmar/Sterling/Ulcer context).
 
 ---
 
-### Lens 6 – Exposure & Leverage
+### Lens 5 – Asymmetry & Convexity Categories
+**Focus:** Payoff structure $g(x)$ and benefiting from volatility/disorder.
 
-32) Gross & Net Exposure  
-    - What it is: Gross = longs + shorts; net = longs − shorts (usually as % of capital).  
-    - Why: High gross with low net often indicates volatility arbitrage or crowded relative-value trades.  
-    - Sources: Standard portfolio / hedge-fund risk metrics.
+**Convexity Index (CI) / Payoff $g(x)$ Convexity**
+*   **What it is:** A score quantifying curvature of payoff $g(x)$; $CI>1$ means favorable convexity, $CI<1$ concave exposure.
+*   **Why:** Central to your “convexity hunter” doctrine and TailWarp’s optimization layer.
+*   **Sources:** Internal TailWarp design; Taleb’s “X vs F(X): exposures to X confused with knowledge about X” (Ch. 3.10)【turn5search18】.
 
-33) Leverage Ratio (Notional / Equity)  
-    - What it is: Ratio of notional exposure or delta-adjusted exposure to equity.  
-    - Why: Determines how violently moves affect the equity curve and how close you are to margin/ruin.  
-    - Sources: Leverage cycle literature and margin-risk frameworks【turn1search0】【turn1search3】.
+**Sortino Ratio & Downside Deviation**
+*   **What it is:** Sharpe-like ratio but using only downside deviation instead of total volatility.
+*   **Why:** Focuses on harmful volatility; more consistent with convex, fat-tail view.
+*   **Sources:** Sortino ratio and downside deviation definitions【turn3search0】【turn3search2】.
 
-34) Beta & Factor Loadings  
-    - What it is: Sensitivities to market or style factors (value, size, carry, etc.).  
-    - Why: Identifies hidden factor exposures that can cause simultaneous drawdowns across positions.  
-    - Sources: Factor model literature; TailWarp’s cross-asset work.
+**Omega Ratio**
+*   **What it is:** Probability-weighted ratio of gains vs losses relative to a threshold return.
+*   **Why:** Uses the full return distribution; especially good for non-Gaussian, asymmetric payoffs.
+*   **Sources:** Keating & Shadwick; Wikipedia and overviews【turn3search5】【turn3search6】.
 
-35) Concentration Risk  
-    - What it is: Share of capital in single assets, sectors, or risk clusters.  
-    - Why: Even with good tail metrics, high concentration can blow you up.  
-    - Sources: Standard risk management; also touched on by Taleb’s “portfolios should never rely on correlation” (Ch. 29)【turn5search18】.
+**Skewness & Higher Moments**
+*   **What it is:** Third moment (skewness) and fourth moment (kurtosis) of returns.
+*   **Why:** Captures asymmetry and tail weight beyond volatility; important for fat-tail and convexity analysis.
+*   **Sources:** Standard risk / EVT textbooks【turn4search9】.
 
-36) Leverage Cycles (Systemic)  
-    - What it is: System-wide fluctuations in allowable leverage and margin over time (Geanakoplos).  
-    - Why: Rising systemic leverage often precedes crises; deleveraging can cause sudden, non-linear jumps.  
-    - Sources: Geanakoplos’ “The Leverage Cycle”【turn1search0】【turn1search1】【turn1search2】【turn1search3】.
+**Karamata-Point Pricing (Tail-Only Relative Pricing)**
+*   **What it is:** Using tail index $\alpha$ and a liquid “anchor” option to price deeper tail options, ignoring the body of the distribution.
+*   **Why:** In Fréchet MDA, beyond a point (Karamata point) only the tail index matters; reduces model dependence.
+*   **Sources:** TailWarp MDA/EVT notes; EVT literature on power-law tails【turn4search3】.
+
+**Shadow Greeks (Tail-Adjusted Sensitivities)**
+*   **What it is:** Option Greeks computed under shadow moments / heavy-tailed assumptions rather than Gaussian vol.
+*   **Why:** Standard delta/gamma under Gaussian tail assumptions can severely misstate tail exposures.
+*   **Sources:** Conceptual extension of EVT-based pricing and tail-index adjustments; Taleb’s “Unique Measure” and options under power laws【turn5search18】.
+
+**Quasi-Static Hedging**
+*   **What it is:** Using static options positions to hedge barrier risks, acknowledging that dynamic delta-hedging fails during jumps/gaps.
+*   **Why:** Provides robust protection against model-dependent exposures.
+*   **Sources:** Risk Management Using Quasi-static Hedging (Allen & Padovani)【turn4search17】.
 
 ---
 
-### Lens 7 – Liquidity & Market-Structure (incl. FX no-volume)
+### Lens 6 – Exposure & Leverage Categories
+**Focus:** How much capital is committed and to what factors.
 
-37) Bid–Ask Spread & Spread Volatility  
-    - What it is: Width of bid–ask; its time variation (especially during stress).  
-    - Why: In FX (no volume), spread and depth are the main liquidity signals.  
-    - Sources:  
-      - Studies of FX bid–ask spreads and their impact on risk【turn2search14】.
+**Leverage Cycles (Systemic)**
+*   **What it is:** System-wide fluctuations in allowable leverage and margin over time (Geanakoplos).
+*   **Why:** Rising systemic leverage often precedes crises; deleveraging can cause sudden, non-linear jumps.
+*   **Sources:** Geanakoplos’ “The Leverage Cycle”【turn1search0】【turn1search1】.
 
-38) Order-Flow Toxicity / VPIN (Volume- or Tick-Synchronized PIN)  
-    - What it is: VPIN measures the probability of informed trading based on imbalance in buys vs sells in volume (or tick) buckets.  
-    - Why: Elevated VPIN often precedes flash crashes and regime changes; useful as an LTF risk alarm.  
-    - Sources: Easley et al. VPIN papers and reviews【turn0search10】【turn0search11】【turn0search12】【turn0search13】【turn0search14】.  
-    - Note for FX: Can be implemented using tick-count or quote-imbalance proxies when volume is unavailable.
+**Gross & Net Exposure**
+*   **What it is:** Gross = longs + shorts; net = longs − shorts (usually as % of capital).
+*   **Why:** High gross with low net often indicates volatility arbitrage or crowded relative-value trades.
+*   **Sources:** Standard portfolio / hedge-fund risk metrics.
 
-39) Market Impact Models (Almgren–Chriss style)  
-    - What it is: Models estimating how your own execution moves the market.  
-    - Why: For larger FX orders, impact can be a substantial drag and risk.  
-    - Sources: Market impact literature; microstructure models【turn2search9】.
+**Leverage Ratio (Notional / Equity)**
+*   **What it is:** Ratio of notional exposure or delta-adjusted exposure to equity.
+*   **Why:** Determines how violently moves affect the equity curve and how close you are to margin/ruin.
+*   **Sources:** Leverage cycle literature and margin-risk frameworks.
 
-40) Depth of Book & Order-Shape Metrics  
-    - What it is: Distribution of available quantity at each price level.  
-    - Why: Shallow depth = higher gap risk; important in FX even without exchange-level depth.  
-    - Sources: Microstructure and market-depth risk literature.
+**Beta & Factor Loadings**
+*   **What it is:** Sensitivities to market or style factors (value, size, carry, etc.).
+*   **Why:** Identifies hidden factor exposures that can cause simultaneous drawdowns across positions.
+*   **Sources:** Factor model literature; TailWarp’s cross-asset work.
 
-41) Liquidity-Adjusted VaR (LVaR)  
-    - What it is: VaR adjusted for liquidity effects (wider spreads, reduced depth, or unwind time).  
-    - Why: During crises, liquidity risk often dominates market risk; LVaR captures that extra hit.  
-    - Sources: Bangia, Diebold, Schuermann & Stroughair’s LVaR framework; later extensions【turn0search15】【turn0search16】【turn0search18】【turn0search19】.
+**Concentration Risk**
+*   **What it is:** Share of capital in single assets, sectors, or risk clusters.
+*   **Why:** Even with good tail metrics, high concentration can blow you up.
+*   **Sources:** Standard risk management; Taleb’s “portfolios should never rely on correlation” (Ch. 29)【turn5search18】.
+
+---
+
+### Lens 7 – Liquidity & Market-Structure Categories
+**Focus:** The ability to exit and the cost of execution.
+
+**Bid–Ask Spread & Slippage**
+*   **What it is:** Width of bid–ask; its time variation (especially during stress). Slippage is the cost of execution moving price.
+*   **Why:** In FX (no volume), spread and depth are the main liquidity signals.
+*   **Sources:** Studies of FX bid–ask spreads and their impact on risk【turn2search14】.
+
+**Market Impact Models (Almgren–Chriss style)**
+*   **What it is:** Models estimating how your own execution moves the market.
+*   **Why:** For larger FX orders, impact can be a substantial drag and risk.
+*   **Sources:** Market impact literature; microstructure models【turn2search9】.
+
+**Order-Flow Toxicity / VPIN (Volume- or Tick-Synchronized PIN)**
+*   **What it is:** VPIN measures the probability of informed trading based on imbalance in buys vs sells in volume (or tick) buckets.
+*   **Why:** Elevated VPIN often precedes flash crashes and regime changes; useful as an LTF risk alarm.
+*   **Sources:** Easley et al. VPIN papers and reviews【turn0search10】【turn0search12】; Note for FX: Can be implemented using tick-count or quote-imbalance proxies.
+
+**Depth of Book & Order-Shape Metrics**
+*   **What it is:** Distribution of available quantity at each price level.
+*   **Why:** Shallow depth = higher gap risk; important in FX even without exchange-level depth.
+*   **Sources:** Microstructure and market-depth risk literature.
+
+**Liquidity-Adjusted VaR (LVaR)**
+*   **What it is:** VaR adjusted for liquidity effects (wider spreads, reduced depth, or unwind time).
+*   **Why:** During crises, liquidity risk often dominates market risk; LVaR captures that extra hit.
+*   **Sources:** Bangia, Diebold, Schuermann & Stroughair’s LVaR framework; later extensions【turn0search15】【turn0search16】.
 
 ---
 
 ### Lens 8 – Behavioral & Decision-Making Risks
+**Focus:** Risks arising from human limits and organizational incentives.
 
-42) Model Risk  
-    - What it is: Risk that the model used for pricing or risk management is wrong or mis-specified.  
-    - Why: In fat-tailed, LTF FX environments, model errors can be catastrophic (e.g., assuming Gaussian when α≈3).  
-    - Sources: Morini “Understanding and Managing Model Risk”【turn1search10】【turn1search11】【turn1search12】.
+**Model Risk**
+*   **What it is:** Risk that the model used for pricing or risk management is wrong or mis-specified.
+*   **Why:** In fat-tailed, LTF FX environments, model errors can be catastrophic (e.g., assuming Gaussian when $\alpha \approx 3$).
+*   **Sources:** Morini “Understanding and Managing Model Risk”【turn1search10】【turn1search12】.
 
-43) Agency Risk / Moral Hazard  
-    - What it is: Incentive misalignment where traders participate in upside but are insulated from downside.  
-    - Why: Encourages tail-selling and hidden leverage; a key source of systemic blow-ups.  
-    - Sources: Classic agency and risk-taking literature; often discussed in crisis post-mortems.
+**Agency Risk / Moral Hazard**
+*   **What it is:** Incentive misalignment where traders participate in upside but are insulated from downside.
+*   **Why:** Encourages tail-selling and hidden leverage; a key source of systemic blow-ups.
+*   **Sources:** Classic agency and risk-taking literature; often discussed in crisis post-mortems.
 
-44) Lucretius Fallacy (Past Maximum as Ceiling)  
-    - What it is: Assuming the worst historical event is the worst possible event.  
-    - Why: Leads to underestimation of tail risk and under-hedging.  
-    - Sources: Discussed in Taleb’s EVT work (Ch. 9, Extreme Values and Hidden Tails) in your docs.
+**Lucretius Fallacy (Past Maximum as Ceiling)**
+*   **What it is:** Assuming the worst historical event is the worst possible event.
+*   **Why:** Leads to underestimation of tail risk and under-hedging.
+*   **Sources:** Discussed in Taleb’s EVT work (Ch. 9, Extreme Values and Hidden Tails) in your docs【turn5search18】.
 
-45) Knightian Uncertainty  
-    - What it is: Situations where risks cannot be assigned objective probabilities; fundamentally unmodelable.  
-    - Why: Reminds us where models break and heuristics / barbells are needed instead of “precise” numbers.  
-    - Sources: Knight’s Risk, Uncertainty and Profit; overviews of Knightian uncertainty in economics【turn1search5】【turn1search7】【turn1search9】.
+**Knightian Uncertainty**
+*   **What it is:** Situations where risks cannot be assigned objective probabilities; fundamentally unmodelable.
+*   **Why:** Reminds us where models break and heuristics / barbells are needed instead of “precise” numbers.
+*   **Sources:** Knight’s Risk, Uncertainty and Profit; overviews of Knightian uncertainty in economics【turn1search5】【turn1search7】.
 
-46) Look-Ahead Bias / Data Snooping  
-    - What it is: Inadvertently using future information in backtests (e.g., signal constructed with knowledge of future behavior).  
-    - Why: Creates false confidence in strategies; especially dangerous in LTF FX where noise is high.  
-    - Sources: Standard quantitative finance and methodology warnings in backtesting literature.
+**Look-Ahead Bias / Data Snooping**
+*   **What it is:** Inadvertently using future information in backtests (e.g., signal constructed with knowledge of future behavior).
+*   **Why:** Creates false confidence in strategies; especially dangerous in LTF FX where noise is high.
+*   **Sources:** Standard quantitative finance and methodology warnings in backtesting literature.
 
-47) Overconfidence & Herding Metrics  
-    - What it is: Indicators of excessive optimism (e.g., crowded positioning, surveys) and correlation in behavior across agents.  
-    - Why: Herding into the same trades is a systemic fragility amplifier.  
-    - Sources: Behavioral finance and risk-perception literature; mapped to Lens 8 in your docs【turn0search10】【turn0search14】.
+**Overconfidence & Herding Metrics**
+*   **What it is:** Indicators of excessive optimism (e.g., crowded positioning, surveys) and correlation in behavior across agents.
+*   **Why:** Herding into the same trades is a systemic fragility amplifier.
+*   **Sources:** Behavioral finance and risk-perception literature; mapped to Lens 8 in your docs【turn0search10】【turn0search14】.
 
 ---
 
-### Lens 9 – Narrative & Information-Structure
+### Lens 9 – Narrative & Information-Structure Categories
+**Focus:** The divergence between story and data.
 
-48) Information Asymmetry  
-    - What it is: Some agents have better or faster information than others.  
-    - Why: A major risk for slower traders; can manifest as adverse selection and toxic flow.  
-    - Sources: Microstructure and informed-trading literature (PIN, VPIN)【turn0search10】【turn0search12】.
+**Information Asymmetry**
+*   **What it is:** Some agents have better or faster information than others.
+*   **Why:** A major risk for slower traders; can manifest as adverse selection and toxic flow.
+*   **Sources:** Microstructure and informed-trading literature (PIN, VPIN)【turn0search10】【turn0search12】.
 
-49) Latency & Tick-Time Arbitrage  
-    - What it is: Faster participants exploiting slower ones via speed or superior data.  
-    - Why: In FX, with fragmented venues and tick granularity, slower execution can be systematically taxed.  
-    - Sources: FX microstructure / tick-size & HFT behavior studies【turn2search12】【turn2search13】.
+**Latency & Tick-Time Arbitrage**
+*   **What it is:** Faster participants exploiting slower ones via speed or superior data.
+*   **Why:** In FX, with fragmented venues and tick granularity, slower execution can be systematically taxed.
+*   **Sources:** FX microstructure / tick-size & HFT behavior studies【turn2search12】【turn2search13】.
 
-50) Sentiment Analysis / NLP-Based Scores  
-    - What it is: Quantitative indicators of tone from news and social media.  
-    - Why: Narrative extremes often precede reversals or crashes; useful for regime flags.  
-    - Sources: Sentiment/NLP risk literature (though outside TailWarp’s current geometric focus)【turn0search10】【turn0search14】.
+**Sentiment Analysis / NLP-Based Scores**
+*   **What it is:** Quantitative indicators of tone from news and social media.
+*   **Why:** Narrative extremes often precede reversals or crashes; useful for regime flags.
+*   **Sources:** Sentiment/NLP risk literature (though outside TailWarp’s current geometric focus)【turn0search10】【turn0search14】.
 
-51) Narrative–Price Divergence Indicators  
-    - What it is: Comparing implied narratives (e.g., from central-bank communications or news) to market pricing.  
-    - Why: Where story and price diverge, you often find mispricing and convex opportunities.  
-    - Sources: Conceptual link to your “critical thinking, pattern-hunting” layer (Lens 9).
+**Echo Chamber Effect**
+*   **What it is:** Metrics to detect when information flow is circular (high internal correlation of news) rather than novel, signaling a fragile consensus.
+*   **Why:** Indicates a breakdown in unique information discovery, often preceding regime shifts.
+
+**Narrative–Price Divergence Indicators**
+*   **What it is:** Comparing implied narratives (e.g., from central-bank communications or news) to market pricing.
+*   **Why:** Where story and price diverge, you often find mispricing and convex opportunities.
+*   **Sources:** Conceptual link to your “critical thinking, pattern-hunting” layer (Lens 9).
 
 ---
 
 ### Lens 10 – Cross-Asset & Systemic Risks
+**Focus:** Contagion, networks, and system-wide failure.
 
-52) Correlation Instability & Breakdown  
-    - What it is: Correlations tend to 1 in crises; diversification fails when needed most.  
-    - Why: Standard mean-variance portfolio theory is fragile; TailWarp uses robust covariance / manifold methods.  
-    - Sources: Taleb Ch. 29 “Portfolios should never rely on correlation”【turn5search18】.
+**Correlation Instability & Breakdown**
+*   **What it is:** Correlations tend to 1 in crises; diversification fails when needed most.
+*   **Why:** Standard mean-variance portfolio theory is fragile; TailWarp uses robust covariance / manifold methods.
+*   **Sources:** Taleb Ch. 29 “Portfolios should never rely on correlation”【turn5search18】.
 
-53) Network Contagion / DebtRank  
-    - What it is: Measures how distress propagates through a network of institutions (e.g., interbank exposures).  
-    - Why: Captures second-round effects and non-linear amplification of shocks.  
-    - Sources: Battiston et al. DebtRank and related network stress frameworks【turn0search5】【turn0search6】【turn0search8】【turn0search9】.
+**Network Contagion / DebtRank**
+*   **What it is:** Measures how distress propagates through a network of institutions (e.g., interbank exposures).
+*   **Why:** Captures second-round effects and non-linear amplification of shocks.
+*   **Sources:** Battiston et al. DebtRank and related network stress frameworks【turn0search5】【turn0search6】.
 
-54) CoVaR (ΔCoVaR)  
-    - What it is: Contribution of an institution to systemic VaR – how much worse system risk is when that institution is under distress.  
-    - Why: Highlights systemically important nodes and cross-asset spillovers.  
-    - Sources: Adrian & Brunnermeier’s CoVaR papers and Fed summaries【turn0search0】【turn0search1】【turn0search3】【turn0search4】.
+**CoVaR ($\Delta$CoVaR)**
+*   **What it is:** Contribution of an institution to systemic VaR – how much worse system risk is when that institution is under distress.
+*   **Why:** Highlights systemically important nodes and cross-asset spillovers.
+*   **Sources:** Adrian & Brunnermeier’s CoVaR papers and Fed summaries【turn0search0】【turn0search1】.
 
-55) Fire Sale Externalities  
-    - What it is: Forced selling by one participant depressing prices and triggering further forced sales.  
-    - Why: Amplifies drawdowns and tail moves; creates system-wide downside convexity for many agents.  
-    - Sources: Contagion and network risk literature (linked to DebtRank and CoVaR)【turn0search6】【turn0search8】.
+**Fire Sale Externalities**
+*   **What it is:** Forced selling by one participant depressing prices and triggering further forced sales.
+*   **Why:** Amplifies drawdowns and tail moves; creates system-wide downside convexity for many agents.
+*   **Sources:** Contagion and network risk literature (linked to DebtRank and CoVaR)【turn0search6】.
 
-56) Riemannian / SPD Covariance Manifold Operations  
-    - What it is: Treat covariance matrices as points on the symmetric positive-definite manifold, using affine-invariant and log-Euclidean metrics.  
-    - Why: Avoids naive Euclidean averaging of correlations and improves robustness for multi-asset fat-tailed environments.  
-    - Sources: Riemannian metric learning and natural gradient / geometry papers mapped in papers-to-init.md【turn0search0】.
-
+**Riemannian / SPD Covariance Manifold Operations**
+*   **What it is:** Treat covariance matrices as points on the symmetric positive-definite manifold, using affine-invariant and log-Euclidean metrics.
+*   **Why:** Avoids naive Euclidean averaging of correlations and improves robustness for multi-asset fat-tailed environments.
+*   **Sources:** Riemannian metric learning and natural gradient / geometry papers mapped in papers-to-init.md.
 ---
 
-# 3. Complete mindmap (Mermaid)
+# 2. Complete mindmap (Mermaid)
 
 Here’s a single mindmap that ties together categories and specific methods, including the LTF/no-volume and systemic/decision ones:
 
@@ -474,7 +431,7 @@ mindmap
       SPD Manifold Covariance
 ```
 
-Here are the consolidated links for each risk category and method, formatted as Markdown URL references.
+# 3. Links of the sources
 
 ### Lens 1: Structural / Ruin Risk
 
