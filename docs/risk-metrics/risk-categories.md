@@ -369,7 +369,7 @@ mindmap
       Solvency Distance
     Volatility & Noise (LTF/FX)
       Rolling Close-Close Volatility
-      Range-Based Estimators (Parkinson, Garman–Klass, Rogers–Satchell, Yang–Zhang)
+      Range-Based Estimators
       Realized Volatility (Tick/Quote-Based)
       Regime Detection (kappa, Hill alpha)
       Microstructure Noise vs Signal
@@ -399,6 +399,7 @@ mindmap
       Skewness & Higher Moments
       Karamata-Point Pricing
       Shadow Greeks
+      Quasi-Static Hedging
     Exposure & Leverage
       Gross & Net Exposure
       Leverage Ratio (Notional/Equity)
