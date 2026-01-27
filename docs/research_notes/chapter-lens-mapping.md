@@ -32,9 +32,10 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | Gatheral | Ch 6 | Modeling Default Risk | "Jump-to-ruin" model with probability per unit time that stock jumps to zero | MEDIUM (Phase 3) |
 
 **TailWarp Implementation Notes:**
-- Risk-of-ruin calculations for position sizing
-- Survival probability under different betting fractions
-- Capital impairment metrics
+- Risk of Ruin (RoR) calculations
+- Absorbing Barriers / Ruin State modeling
+- Survival Probability under stochastic shocks
+- Solvency Distance / Distance to Ruin metrics
 - "Distance to death" as hard constraint in optimization
 
 ---
@@ -51,8 +52,13 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | Gatheral | Ch 1 | Stochastic Volatility and Local Volatility | Volatility is random; local volatility ensures consistent pricing | MEDIUM (Phase 3) |
 
 **TailWarp Implementation Notes:**
-- Student-t and α-stable distribution samplers
-- Regime detection based on κ metric
+- Stochastic volatility models (Student-t, α-stable)
+- Rolling close-close volatility (LTF)
+- Regime detection (power-law vs switching via κ metric)
+- Range-based volatility estimators (Parkinson, Garman-Klass, Rogers-Satchell, Yang-Zhang)
+- Realized volatility (tick/quote-based) for FX
+- Microstructure noise filtering vs signal
+- Short-dated skew & jump diagnostics
 - Volatility surface calibration (optional, Phase 3+)
 - MAD (Mean Absolute Deviation) instead of standard deviation
 
@@ -70,11 +76,17 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | Gatheral | Ch 5 | Adding Jumps | Jumps necessary to explain volatility surface, especially short-dated | MEDIUM (Phase 3) |
 
 **TailWarp Implementation Notes:**
+- Value at Risk (VaR) & Conditional VaR (CVaR/Expected Shortfall)
+- Maximum Domain of Attraction (MDA) diagnosis (Fréchet vs Gumbel vs Weibull)
+- Tail Index (α) estimation (Hill, POT, GPD)
+- κ Metric for data sufficiency
+- Shadow Mean / Shadow Moments estimation
+- Gap Risk and jump-to-ruin modeling
+- Jump-Diffusion Models for LTF
+- Tail Risk Constraints & Barbell strategy constraints
 - GPU-accelerated CVaR via warp-level sorting
 - POT (Peaks Over Threshold) estimation on GPU
-- Tail index (α) estimation via Hill estimator
-- κ metric for sample size validation
-- Shadow mean estimation for fat-tailed data
+- EVT-based scenario generation
 
 ---
 
@@ -88,9 +100,13 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | Gatheral | Ch 10 | Exotic Cliquets | Napoleons and Reverse Cliquets caused pain to dealers from forward-starting exposure | LOW (Phase 4+) |
 
 **TailWarp Implementation Notes:**
-- Parallel prefix scan for max drawdown on GPU
-- Drawdown duration and recovery time metrics
-- Calmar ratio, Ulcer Index
+- Maximum Drawdown (MDD) calculation via parallel prefix scan
+- Average Drawdown & Drawdown Duration
+- Ulcer Index (RMS of percentage drawdowns)
+- Calmar Ratio (annualized return / MDD)
+- Sterling Ratio (return / avg annual drawdown)
+- Pain Index / Integrated Drawdown
+- Recovery Factor and recovery time metrics
 - Pain-adjusted position sizing
 
 ---
@@ -108,10 +124,14 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 
 **TailWarp Implementation Notes:**
 - Convexity Index (CI) calculation
-- Sortino ratio (downside deviation)
-- Omega ratio (gains vs losses above threshold)
+- Payoff function g(x) analysis and curvature metrics
+- Sortino Ratio and downside deviation
+- Omega Ratio (gains vs losses above threshold)
+- Skewness and higher moments (kurtosis)
+- Karamata-Point pricing (tail-only relative pricing)
+- Shadow Greeks (tail-adjusted option sensitivities)
+- Quasi-static hedging for model-dependent exposures
 - Geodesic convexity constraints on SPD manifold
-- Payoff function analysis g(x)
 
 ---
 
@@ -123,9 +143,13 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | Gatheral | Ch 9 | Barrier Options | Quasi-static hedging for model-dependent exposures | LOW (Phase 4+) |
 
 **TailWarp Implementation Notes:**
+- Leverage Cycles (Systemic) detection (Geanakoplos)
+- Gross & Net Exposure tracking
+- Leverage Ratio constraints (Notional / Equity)
+- Beta & Factor Loadings analysis
+- Concentration Risk metrics
 - Position sizing under CVaR constraint (Gate B)
-- Leverage ratio constraints
-- Beta and factor exposure analysis (future)
+- Capital allocation under risk constraints
 - **NOTE**: This lens is under-represented in both books; practical trader knowledge required
 
 ---
@@ -138,13 +162,17 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | *(Not found)* | - | - | Neither book provides technical chapters on this | N/A |
 
 **TailWarp Implementation Notes:**
-- Not a priority for current research focus
+- Bid–Ask Spread & Slippage modeling
+- Market Impact Models (Almgren–Chriss style)
+- Order-Flow Toxicity / VPIN (Volume-/Tick-Synchronized PIN)
+- Depth of Book & Order-Shape Metrics
+- Liquidity-Adjusted VaR (LVaR)
+- **Not a priority for current research focus**
 - May add bid-ask impact models in Phase 5+
-- Mentioned conceptually in Taleb ("knowing where the doors are") but not quantified
 
 ---
 
-### **Lens 8: Behavioral & Perception Categories**
+### **Lens 8: Behavioral & Decision-Making Risks**
 *"How is the market perceiving risk, and how is that perception distorted?"*
 
 | Book | Chapter | Title | Reason | TailWarp Priority |
@@ -153,9 +181,14 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | Taleb | Ch 12 | On Forecasts | Psychology of forecasting errors | LOW (Phase 5+) |
 
 **TailWarp Implementation Notes:**
-- Not a focus for geometric methods
+- Model Risk assessment
+- Agency Risk / Moral Hazard detection
+- Lucretius Fallacy (Past Maximum as Ceiling)
+- Knightian Uncertainty recognition
+- Look-Ahead Bias / Data Snooping detection
+- Overconfidence & Herding Metrics
+- **Not a focus for geometric methods**
 - Potential future: sentiment integration for regime detection
-- Behavioral anomaly detection for opportunity hunting
 
 ---
 
@@ -167,7 +200,12 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | *(Not found)* | - | - | Conceptually discussed but no quantitative framework | N/A |
 
 **TailWarp Implementation Notes:**
-- Out of scope for current mathematical focus
+- Information Asymmetry detection
+- Latency & Tick-Time Arbitrage analysis
+- Sentiment Analysis / NLP-Based Scores
+- Echo Chamber Effect metrics
+- Narrative–Price Divergence Indicators
+- **Out of scope for current mathematical focus**
 - Could integrate NLP/news analysis in Phase 5+ for "better-than-human" layer
 
 ---
@@ -181,6 +219,10 @@ The Ten Lenses organize risk methods into categories from foundational "pro-leve
 | Taleb | Ch 29 | Portfolios should never rely on correlation | Correlation is unstable for non-Gaussian variables; diversification fails under systemic stress | **HIGH** (Phase 2 - Gate E) |
 
 **TailWarp Implementation Notes:**
+- Correlation Instability & Breakdown analysis
+- Contagion Risk metrics
+- Network-based Risk Propagation models
+- Systemic Fragility Indicators
 - Robust covariance estimation (Tyler's M-estimator)
 - Riemannian barycenters for regime blending
 - **NO Euclidean correlation averaging** - use manifold operations
