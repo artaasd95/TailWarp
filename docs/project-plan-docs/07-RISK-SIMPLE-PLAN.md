@@ -7,90 +7,85 @@ A simple checklist mapping each risk method to its implementation phase.
 ## Phase 1 — Core Foundations
 
 **Lens 2: Volatility & Noise**
-- [ ] Stochastic Volatility Models (Student-t, α-stable)
-- [ ] Rolling Close-Close Volatility
-- [ ] Regime Detection (κ metric)
+- [ ] Stochastic Volatility Models
+- [ ] Rolling Close-Close Volatility (LTF)
+- [ ] Regime Detection (Markov Switching)
 
 **Lens 3: Downside & Tail**
-- [ ] VaR & CVaR (95%, 99%, 99.9%)
-- [ ] Tail Index Estimation (Hill estimator, basic)
-- [ ] κ Metric for Data Sufficiency
-- [ ] MDA Diagnosis (Fréchet vs Gumbel vs Weibull)
+- [ ] Value at Risk (VaR) & Conditional VaR (CVaR / Expected Shortfall)
+- [ ] $\kappa$ Metric for Data Sufficiency
+- [ ] Maximum Domain of Attraction (MDA) Diagnosis (Fréchet vs Gumbel vs Weibull)
+- [ ] Tail Index ($\alpha$) Estimation (Hill, POT, GPD)
 
 **Lens 4: Drawdown & Pain**
 - [ ] Maximum Drawdown (MDD)
-- [ ] Drawdown Duration & Average Drawdown
+- [ ] Average Drawdown & Drawdown Duration
 - [ ] Calmar Ratio
 - [ ] Ulcer Index
-- [ ] Recovery Time
+- [ ] Recovery Factor / Recovery Time
 
 ---
 
 ## Phase 2 — Heavy Tails & Multi-Asset
 
-**Lens 1: Structural / Ruin**
+**Lens 1: Structural / Ruin Risk**
 - [ ] Risk of Ruin (RoR)
 - [ ] Absorbing Barriers / Ruin State
-- [ ] Solvency Distance / Distance to Ruin
 - [ ] Survival Probability
+- [ ] Solvency Distance / Distance to Ruin
 
 **Lens 2: Volatility & Noise (Extended)**
-- [ ] Range-Based Estimators (Parkinson, Garman-Klass, Rogers-Satchell, Yang-Zhang)
+- [ ] Realized vs. Implied Volatility Gap
+- [ ] Range-Based Volatility Estimators (Parkinson, Garman–Klass, Rogers–Satchell, Yang–Zhang)
 - [ ] Realized Volatility (Tick/Quote-Based) for FX
 - [ ] Microstructure Noise vs Signal
-- [ ] Pseudo-Stochastic Volatility Detection
+- [ ] Pseudo-Stochastic Volatility (Power-Law Masquerading)
 
 **Lens 3: Downside & Tail (Extended)**
-- [ ] POT / GPD Estimation on GPU
 - [ ] Shadow Mean / Shadow Moments
-- [ ] Gap Risk Assessment
+- [ ] Gap Risk (Jump-to-Ruin, Jumps Over Stops)
 
 **Lens 5: Asymmetry & Convexity**
-- [ ] Convexity Index (CI) Calculation
-- [ ] Payoff g(x) Analysis
+- [ ] Convexity Index (CI) / Payoff $g(x)$ Convexity
 - [ ] Sortino Ratio & Downside Deviation
 - [ ] Omega Ratio
 - [ ] Skewness & Higher Moments
 
 **Lens 6: Exposure & Leverage**
-- [ ] Leverage Cycles Detection
-- [ ] Gross & Net Exposure Tracking
-- [ ] Leverage Ratio Constraints
-- [ ] Concentration Risk Metrics
-- [ ] CVaR-Constrained Position Sizing
+- [ ] Leverage Cycles (Systemic)
+- [ ] Gross & Net Exposure
+- [ ] Leverage Ratio (Notional / Equity)
+- [ ] Beta & Factor Loadings
+- [ ] Concentration Risk
 
 **Lens 10: Cross-Asset & Systemic**
-- [ ] Correlation Instability Detection
-- [ ] Tyler's M-Estimator (Robust Covariance)
-- [ ] Riemannian Barycenters (SPD Manifold)
+- [ ] Correlation Instability & Breakdown
+- [ ] Riemannian / SPD Covariance Manifold Operations
 
 ---
 
 ## Phase 3 — Optimization & Advanced
 
 **Lens 2: Volatility & Noise (Vol Surface)**
-- [ ] Short-Dated Skew & Jump Diagnostics
-- [ ] Volatility Surface Calibration
+- [ ] Short-Dated Skew & Jump Diagnostic
 
 **Lens 3: Downside & Tail (Advanced)**
 - [ ] Jump-Diffusion Models
-- [ ] Tail Risk Constraints & Barbell
-- [ ] EVT-Based Scenario Generation
+- [ ] Tail Risk Constraints & Barbell (Convexity via Tails)
 
 **Lens 4: Drawdown & Pain (Extended)**
 - [ ] Sterling Ratio
 - [ ] Pain Index / Integrated Drawdown
 
 **Lens 5: Asymmetry & Convexity (Optimization)**
-- [ ] Karamata-Point Pricing
+- [ ] Karamata-Point Pricing (Tail-Only Relative Pricing)
 - [ ] Shadow Greeks (Tail-Adjusted Sensitivities)
 - [ ] Quasi-Static Hedging
-- [ ] Geodesic Convex Constraints
 
 **Lens 10: Cross-Asset & Systemic (Networks)**
-- [ ] Copula Models
-- [ ] Network Contagion / DebtRank Framework
-- [ ] CoVaR Computation
+- [ ] Network Contagion / DebtRank
+- [ ] CoVaR ($\Delta$CoVaR)
+- [ ] Fire Sale Externalities
 
 ---
 
@@ -98,20 +93,24 @@ A simple checklist mapping each risk method to its implementation phase.
 
 **Lens 7: Liquidity & Market-Structure** (Phase 5+)
 - [ ] Bid–Ask Spread & Slippage
-- [ ] Market Impact Models (Almgren–Chriss)
-- [ ] Order-Flow Toxicity (VPIN)
+- [ ] Market Impact Models (Almgren–Chriss style)
+- [ ] Order-Flow Toxicity / VPIN (Volume- or Tick-Synchronized PIN)
+- [ ] Depth of Book & Order-Shape Metrics
 - [ ] Liquidity-Adjusted VaR (LVaR)
 
 **Lens 8: Behavioral & Decision-Making** (Phase 5+)
-- [ ] Model Risk Assessment
-- [ ] Agency Risk / Moral Hazard Detection
-- [ ] Lucretius Fallacy Recognition
-- [ ] Look-Ahead Bias / Data Snooping Checks
+- [ ] Model Risk
+- [ ] Agency Risk / Moral Hazard
+- [ ] Lucretius Fallacy (Past Maximum as Ceiling)
+- [ ] Knightian Uncertainty
+- [ ] Look-Ahead Bias / Data Snooping
+- [ ] Overconfidence & Herding Metrics
 
-**Lens 9: Narrative & Information** (Phase 5+)
-- [ ] Information Asymmetry Metrics
-- [ ] Latency & Tick-Time Arbitrage Analysis
-- [ ] Sentiment Analysis / NLP Flags
+**Lens 9: Narrative & Information-Structure** (Phase 5+)
+- [ ] Information Asymmetry
+- [ ] Latency & Tick-Time Arbitrage
+- [ ] Sentiment Analysis / NLP-Based Scores
+- [ ] Echo Chamber Effect
 - [ ] Narrative–Price Divergence Indicators
 
 ---
