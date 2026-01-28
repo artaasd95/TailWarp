@@ -14,10 +14,29 @@ Quantify and track:
 
 ## Key Implementation Areas
 
+- **Risk of Ruin (RoR):** Probability of hitting absorbing barrier using Lundberg Inequality
 - Ruin probability calculations
 - Barrier detection and monitoring
 - Survival analysis under stochastic shocks
 - Capital adequacy and solvency distance metrics
+
+## Implemented Components
+
+### Risk of Ruin (RoR) Metric
+**Files:**
+- `ror_metric.h` – Header with class definitions and CUDA kernel declarations
+- `ror_metric.cu` – CUDA/CPU implementation of RoR calculations
+
+**Key Features:**
+- **CPU Implementation:** Reference calculation using standard math functions
+- **GPU Implementation:** CUDA kernels for single and batch RoR calculations
+- **Batch Processing:** Efficiently compute RoR for multiple scenarios
+- **Parameter Validation:** Net Profit Condition checks
+
+**Mathematical Basis:**
+- Survival Score = 1 - e^(-R·u)
+- Lundberg Coefficient: R = 2·μ / σ²
+- Ruin Probability: ψ = e^(-R·u)
 
 ## Reference Documentation
 
