@@ -554,3 +554,4 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,c++,cuda,jupyternotebooks,latex
 *.log
 
+explain-text-prompt.txt
