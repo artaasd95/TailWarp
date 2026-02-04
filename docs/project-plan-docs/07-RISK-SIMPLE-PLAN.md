@@ -7,10 +7,12 @@ A phased checklist that prioritizes **Survival**, then **Reality (Fat Tails)**, 
 **Primary Lenses:** 1 (Ruin), 4 (Drawdown), 6 (Exposure), 3 (Basic Tail).
 
 **Lens 1: Structural / Ruin Risk**
-- [ ] Risk of Ruin (RoR)
-- [ ] Absorbing Barriers / Ruin State
-- [ ] Survival Probability
-- [ ] Solvency Distance / Distance to Ruin
+- [x] Risk of Ruin (RoR)
+- [x] Absorbing Barriers / Ruin State
+- [x] Survival Probability
+- [x] Solvency Distance / Distance to Ruin
+
+> **Completed 2026-02-04** — Implementations: `src/core/Structural-Ruin/absorbing_barrier.*`, `src/core/Structural-Ruin/solvency_distance.*`, `docs/risk-metrics/Structural-Ruin/SOLVENCY-DISTANCE.md`.
 
 **Lens 4: Drawdown & Pain**
 - [ ] Maximum Drawdown (MDD)
