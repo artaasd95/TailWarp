@@ -18,8 +18,8 @@ A phased checklist that prioritizes **Survival**, then **Reality (Fat Tails)**, 
 - [x] Maximum Drawdown (MDD)
 - [x] Average Drawdown & Drawdown Duration
 - [x] Ulcer Index
-- [ ] Calmar Ratio
-- [ ] Recovery Factor / Recovery Time
+- [x] Calmar Ratio
+- [x] Recovery Factor / Recovery Time
 
 > **Completed 2026-02-04** — Implementations: `src/core/Drawdown-Pain/maximum_drawdown.*`, `src/core/Drawdown-Pain/average_drawdown_duration.*`, `src/core/Drawdown-Pain/ulcer_index.*`, `docs/risk-metrics/Drawdown-Pain/DRAWDOWN-PAIN.md`.
 
