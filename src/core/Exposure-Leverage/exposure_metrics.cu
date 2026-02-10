@@ -34,7 +34,7 @@ __global__ void compute_exposure_kernel(
     __shared__ int s_count_short[256];
 
     int tid = threadIdx.x;
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx = static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
 
     // Initialize shared memory
     s_gross[tid] = 0.0f;
@@ -65,7 +65,7 @@ __global__ void compute_exposure_kernel(
 
     // Reduction in shared memory
     for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
-        if (tid < stride && (idx + stride) < num_positions) {
+        if (tid < stride) {
             s_gross[tid] += s_gross[tid + stride];
             s_net[tid] += s_net[tid + stride];
             s_long[tid] += s_long[tid + stride];
@@ -89,6 +89,7 @@ __global__ void compute_exposure_kernel(
 
 /**
  * @brief Final reduction kernel
+ * Handles case where num_blocks may be larger than block size
  */
 __global__ void final_reduction_kernel(
     const float* d_partial,
@@ -97,11 +98,16 @@ __global__ void final_reduction_kernel(
 ) {
     __shared__ float s_data[256];
     int tid = threadIdx.x;
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    s_data[tid] = (idx < num_blocks) ? d_partial[idx] : 0.0f;
+    
+    // Grid-stride loop to handle num_blocks > blockDim.x
+    float sum = 0.0f;
+    for (size_t i = tid; i < num_blocks; i += blockDim.x) {
+        sum += d_partial[i];
+    }
+    s_data[tid] = sum;
     __syncthreads();
 
+    // Reduction in shared memory
     for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
         if (tid < stride) {
             s_data[tid] += s_data[tid + stride];
@@ -110,7 +116,7 @@ __global__ void final_reduction_kernel(
     }
 
     if (tid == 0) {
-        atomicAdd(d_result, s_data[0]);
+        *d_result = s_data[0];
     }
 }
 
@@ -167,10 +173,20 @@ ExposureResult ExposureMetrics::compute_gpu(const ExposureParameters& params) {
 
     // Allocate device memory
     float* d_weights = nullptr;
-    cudaMalloc(&d_weights, params.num_positions * sizeof(float));
-    cudaMemcpy(d_weights, params.position_weights,
-               params.num_positions * sizeof(float),
-               cudaMemcpyHostToDevice);
+    cudaError_t err = cudaMalloc(&d_weights, params.num_positions * sizeof(float));
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA malloc failed: " << cudaGetErrorString(err) << std::endl;
+        return result;
+    }
+    
+    err = cudaMemcpy(d_weights, params.position_weights,
+                     params.num_positions * sizeof(float),
+                     cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA memcpy failed: " << cudaGetErrorString(err) << std::endl;
+        cudaFree(d_weights);
+        return result;
+    }
 
     // Calculate grid dimensions
     const int threads_per_block = 256;
@@ -201,6 +217,21 @@ ExposureResult ExposureMetrics::compute_gpu(const ExposureParameters& params) {
         d_partial_long, d_partial_short,
         d_num_long, d_num_short
     );
+    
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::cerr << "Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
+        cudaFree(d_weights);
+        cudaFree(d_partial_gross);
+        cudaFree(d_partial_net);
+        cudaFree(d_partial_long);
+        cudaFree(d_partial_short);
+        cudaFree(d_num_long);
+        cudaFree(d_num_short);
+        return result;
+    }
+    
+    cudaDeviceSynchronize();
 
     // Allocate device memory for final results
     float* d_gross_result = nullptr;
@@ -218,7 +249,7 @@ ExposureResult ExposureMetrics::compute_gpu(const ExposureParameters& params) {
     cudaMemset(d_long_result, 0, sizeof(float));
     cudaMemset(d_short_result, 0, sizeof(float));
 
-    // Final reduction
+    // Final reduction (only need 1 block since we handle grid-stride in kernel)
     cuda_kernels::final_reduction_kernel<<<1, threads_per_block>>>(
         d_partial_gross, num_blocks, d_gross_result
     );
@@ -231,6 +262,13 @@ ExposureResult ExposureMetrics::compute_gpu(const ExposureParameters& params) {
     cuda_kernels::final_reduction_kernel<<<1, threads_per_block>>>(
         d_partial_short, num_blocks, d_short_result
     );
+    
+    cudaDeviceSynchronize();
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::cerr << "Final reduction kernel failed: " << cudaGetErrorString(err) << std::endl;
+        // Continue to cleanup but results may be invalid
+    }
 
     // Copy results back
     cudaMemcpy(&result.gross_exposure, d_gross_result, sizeof(float), cudaMemcpyDeviceToHost);
@@ -246,30 +284,12 @@ ExposureResult ExposureMetrics::compute_gpu(const ExposureParameters& params) {
 
     // Calculate leverage if notionals provided
     if (params.position_notionals != nullptr && params.total_equity > 0.0f) {
-        float* d_notionals = nullptr;
-        cudaMalloc(&d_notionals, params.num_positions * sizeof(float));
-        cudaMemcpy(d_notionals, params.position_notionals,
-                   params.num_positions * sizeof(float),
-                   cudaMemcpyHostToDevice);
-
-        // Use CUB for reduction of absolute notionals
-        float* d_total_notional = nullptr;
-        cudaMalloc(&d_total_notional, sizeof(float));
-        cudaMemset(d_total_notional, 0, sizeof(float));
-
-        // Transform and reduce
-        void* d_temp_storage = nullptr;
-        size_t temp_storage_bytes = 0;
-
-        // We'll use a simple kernel for this
-        // (In production, use CUB's DeviceReduce)
-        // For simplicity, reuse the final_reduction logic
-
-        cudaFree(d_notionals);
-        cudaFree(d_total_notional);
-
-        // Fallback to CPU calculation or implement proper CUB reduction
-        result.leverage_ratio = result.gross_exposure;
+        // Compute total notional on CPU for now (production: use CUB DeviceReduce)
+        float total_notional = 0.0f;
+        for (size_t i = 0; i < params.num_positions; ++i) {
+            total_notional += std::fabs(params.position_notionals[i]);
+        }
+        result.leverage_ratio = total_notional / params.total_equity;
     } else if (params.total_equity > 0.0f) {
         result.leverage_ratio = result.gross_exposure;
     }
@@ -319,7 +339,7 @@ __global__ void compute_squared_weights_kernel(
     float* d_squared_weights,
     size_t num_positions
 ) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx = static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx < num_positions) {
         float abs_weight = fabsf(d_weights[idx]);
         d_squared_weights[idx] = abs_weight * abs_weight;
@@ -336,7 +356,7 @@ __global__ void compute_pctr_kernel(
     float* d_pctr,
     size_t num_positions
 ) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx = static_cast<size_t>(blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx < num_positions) {
         d_pctr[idx] = d_weights[idx] * d_betas[idx];
     }
