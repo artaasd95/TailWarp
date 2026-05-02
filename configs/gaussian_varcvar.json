@@ -1,0 +1,7 @@
+{
+  "name": "gaussian_var_cvar_baseline",
+  "sampler": "gaussian",
+  "n_samples": 500000,
+  "seed": 1,
+  "alpha": 0.99
+}

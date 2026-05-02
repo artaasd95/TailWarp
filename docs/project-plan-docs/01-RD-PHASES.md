@@ -48,29 +48,31 @@ A phase is **done** only when it produces:
 
 **Timeline**: 2–3 weeks
 
-**Scope**:
-- Gaussian sampler (CUDA kernel)
-- RNG wrapper (cuRAND)
-- VaR and CVaR calculation (GPU)
-- CPU reference implementation
-- Single-position PnL distribution
+**Scope (current repo)**:
+- Gaussian sampler (CUDA, `src/core/distributions/gaussian.cu`) + Student-t (`student_t.cu`)
+- Host VaR / CVaR / summary statistics (`src/wrappers/risk_metrics.cpp`), shared with CPU reference (`src/reference/cvar_cpu.cpp`)
+- Host bridges for GPU samplers (`src/wrappers/distributions.cpp`)
+- Survival / drawdown / exposure CUDA metrics (Phase-1-adjacent; see `07-RISK-SIMPLE-PLAN.md`)
+- Example harness: `examples/experiment_run` writes a full experiment folder; `examples/cvar_position_sizing`
+
+**Still open for “Phase 1 complete”** (stretch):
+- GPU VaR/CVaR kernels (device sort / selection) vs host historical metrics today
+- Level 3 statistical gates for Gaussian at production sample sizes; RTX 3060 throughput targets in `QUICK-REFERENCE.md`
 
 **Done when**:
-- [ ] Gaussian sampler passes Level 0–3 validation (sanity + invariants + statistical)
-- [ ] VaR/CVaR pass invariant checks (CVaR >= VaR, monotonicity)
-- [ ] GPU vs CPU comparison within tolerance (< 1% error)
+- [x] Gaussian + Student-t samplers: sanity (no NaN/Inf) + basic statistical smoke tests
+- [x] VaR/CVaR invariant checks (monotonicity; tail convention documented in tests)
+- [ ] GPU vs CPU comparison within tolerance for samplers (partial: Student-t moment check in tests)
 - [ ] Baseline performance recorded: > 500M scenarios/sec for Gaussian on RTX 3060
-- [ ] End-to-end experiment produces all artifacts
-- [ ] At least 3 runs with different seeds show stable results
+- [x] End-to-end experiment produces all artifacts (`experiment_run` + `scripts/validate_experiment.py`)
+- [ ] At least 3 runs with different seeds show stable results (manual / CI recipe)
 
 **Deliverables**:
-- `gaussian_sampler.cu`
-- `risk_metrics.cu` (VaR/CVaR kernels)
-- CPU reference in `scripts/` or `src/reference/`
-- Experiment config: `gaussian_varcvar.json`
+- `src/core/distributions/gaussian.cu`, `src/core/distributions/student_t.cu`
+- `src/wrappers/risk_metrics.cpp` (VaR/CVaR host), `configs/gaussian_varcvar.json`
 - Research note: `docs/research_notes/phase1_gaussian_baseline.md`
 
-**How to verify**: Use checklist from `02-CHECKLISTS.md` → "Adding a New Distribution Kernel" + "Adding a New Risk Metric"
+**How to verify**: Use checklist from `02-CHECKLISTS.md` → "Adding a New Distribution Kernel" + "Adding a New Risk Metric"; run `ctest` and `python scripts/validate_experiment.py` on an output folder.
 
 ## Phase 2 — Heavy Tails + EVT (POT)
 

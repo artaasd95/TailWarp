@@ -1,7 +1,6 @@
 // Unit test: CVaR computation
 
 #include "../../src/wrappers/risk_metrics.h"
-#include "../../src/reference/cvar_cpu.cpp"
 #include <gtest/gtest.h>
 #include <vector>
 
@@ -28,8 +27,9 @@ TEST(CVaR, Monotonicity) {
     EXPECT_LT(cvar_95, cvar_90);
 }
 
-TEST(CVaR, GPUvsCPU) {
-    // TODO: Compare GPU and CPU implementations
-    EXPECT_TRUE(true);  // Placeholder
+TEST(CVaR, VaRQuantileSpotCheck) {
+    std::vector<float> r = {-0.3f, -0.2f, 0.0f, 0.1f};
+    float var = tailwarp::compute_var(r, 0.75f);
+    EXPECT_NEAR(var, -0.3f, 1e-5f);
 }
 

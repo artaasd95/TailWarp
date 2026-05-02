@@ -16,7 +16,10 @@ struct RiskMetrics {
     float kurtosis;
 };
 
-// Compute CVaR from returns
+// Historical VaR: (1-alpha) lower tail threshold on sorted returns (PnL convention).
+float compute_var(const std::vector<float>& returns, float alpha = 0.95f);
+
+// Expected shortfall / CVaR: mean of the worst (1-alpha) fraction (sorted ascending).
 float compute_cvar(const std::vector<float>& returns, float alpha = 0.95f);
 
 // Compute full risk metrics

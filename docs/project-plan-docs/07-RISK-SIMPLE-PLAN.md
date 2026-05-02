@@ -31,7 +31,9 @@ A phased checklist that prioritizes **Survival**, then **Reality (Fat Tails)**, 
 > **Completed 2026-02-10** — Implementations: `src/core/Exposure-Leverage/exposure_metrics.*`, `docs/risk-metrics/Exposure-Leverage/EXPOSURE-METRICS.md`.
 
 **Lens 3: Downside & Tail (Basic)**
-- [ ] Value at Risk (VaR) & Conditional VaR (CVaR / Expected Shortfall)
+- [x] Value at Risk (VaR) & Conditional VaR (CVaR / Expected Shortfall)
+
+> **Completed 2026-05-02** — Host-side historical VaR/CVaR in `src/wrappers/risk_metrics.cpp` (single implementation shared with `src/reference/cvar_cpu.cpp`); GPU Gaussian baseline in `src/core/distributions/gaussian.cu`; Student-t GPU sampling in `src/core/distributions/student_t.cu`. Full GPU sort-based VaR/CVaR kernels remain future work.
 
 ---
 

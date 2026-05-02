@@ -1,7 +1,6 @@
 // Unit test: Student-t sampler
 
 #include "../../src/wrappers/distributions.h"
-#include "../../src/reference/student_t_cpu.cpp"
 #include <gtest/gtest.h>
 #include <cmath>
 
@@ -18,17 +17,32 @@ TEST(StudentT, NoNaNOrInf) {
     }
 }
 
-TEST(StudentT, GPUvsCPU) {
-    // Statistical comparison
-    int n = 100000;
-    float nu = 4.0f;
-    unsigned long long seed = 42;
-    
-    auto gpu_samples = tailwarp::sample_student_t(n, nu, seed);
-    auto cpu_samples = sample_student_t_cpu(n, nu, seed);
-    
-    // Compare first few moments (not exact match due to RNG)
-    // TODO: Use KS test or moment comparison
-    EXPECT_TRUE(true);  // Placeholder
+TEST(StudentT, MomentsVsTheory) {
+    const int n = 200000;
+    const float nu = 6.0f;
+    auto s = tailwarp::sample_student_t(n, nu, 12345ULL);
+    ASSERT_EQ(static_cast<int>(s.size()), n);
+    double mean = 0.0;
+    for (float x : s) {
+        mean += static_cast<double>(x);
+    }
+    mean /= static_cast<double>(n);
+    double var = 0.0;
+    for (float x : s) {
+        const double d = static_cast<double>(x) - mean;
+        var += d * d;
+    }
+    var /= static_cast<double>(n);
+    const double theory_var = static_cast<double>(nu) / static_cast<double>(nu - 2.0f);
+    EXPECT_NEAR(mean, 0.0, 0.03);
+    EXPECT_NEAR(var, theory_var, 0.08);
+}
+
+TEST(StudentT, GaussianBaselineFinite) {
+    auto g = tailwarp::sample_gaussian(50000, 7ULL);
+    for (float x : g) {
+        EXPECT_FALSE(std::isnan(x));
+        EXPECT_FALSE(std::isinf(x));
+    }
 }
 

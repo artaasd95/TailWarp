@@ -28,7 +28,9 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 test:
-	@echo "TODO: Compile and run tests"
+	cmake -B $(BUILD_DIR) -DBUILD_TESTS=ON
+	cmake --build $(BUILD_DIR)
+	cd $(BUILD_DIR) && ctest --output-on-failure
 
 .PHONY: all clean test
 

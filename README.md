@@ -6,25 +6,34 @@ Geometric methods for tail-aware risk optimization using GPU acceleration.
 
 TailWarp implements Riemannian optimization on manifolds (SPD, Fisher-Rao) for robust risk measurement, position sizing, hedging, and portfolio allocation under heavy-tailed distributions.
 
-**Core Features:**
-- Heavy-tailed scenario generation (Student-t, α-stable) on GPU
-- SPD manifold operations for robust covariance estimation
-- CVaR-constrained optimization with geodesic convexity
-- Tyler's M-estimator and Riemannian barycenters
-- Extreme Value Theory (EVT) for tail validation
+**Implemented today**
+- GPU sampling: Student-t, Gaussian (univariate)
+- CUDA metrics: drawdown/pain, structural ruin, basic exposure (see `src/core/`)
+- Host API: VaR / CVaR / summary stats; wrappers call GPU samplers
+- Example CLIs: `experiment_run` (artifact folder), `cvar_position_sizing`
+
+**Planned / partial (see [docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md](docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md))**
+- α-stable and multivariate samplers; EVT / POT tail validation
+- Full SPD manifold geometry (exp/log map, geodesic distance); Tyler M-estimator; Riemannian optimization demos
 
 ## Quick Start
 
 ```bash
-# Build
-make
+# Configure and build (tests + examples)
+cmake -B build -DBUILD_TESTS=ON
+cmake --build build
 
-# Run tests
-make test
+# Tests
+ctest --test-dir build --output-on-failure
 
-# Run example experiment
+# Record a minimal experiment folder (see docs/EXPERIMENTS.md)
+./build/examples/experiment_run configs/experiment_student_t_cvar.json
+
+# CVaR sizing demo
 ./build/examples/cvar_position_sizing --config configs/example_cvar_sizing.json
 ```
+
+Optional: `make` builds CUDA objects only (see [Makefile](Makefile)); prefer CMake for full linking.
 
 ## Project Structure
 
@@ -56,11 +65,11 @@ Based on "Statistical Consequences of Fat Tails" (Taleb) and Riemannian optimiza
 3. **Hedging**: Correlation uncertainty via Riemannian trust regions
 4. **Option Pricing**: Anchor-based tail pricing using EVT
 
-See `docs/ideas-plan.md` for detailed research plan and `docs/project-plan-docs/` for workflow.
+See [docs/ideas-plan.md](docs/ideas-plan.md) and [docs/project-plan-docs/](docs/project-plan-docs/) for workflow.
 
 ## Documentation
 
-- **Research Plan**: `docs/ideas-plan.md`
+- **Research Plan**: [docs/ideas-plan.md](docs/ideas-plan.md)
 - **Workflow**: `docs/project-plan-docs/QUICK-REFERENCE.md`
 - **Experiments**: `docs/EXPERIMENTS.md`
 - **Validation**: `docs/VALIDATION.md`

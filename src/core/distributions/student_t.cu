@@ -3,6 +3,10 @@
 
 #include <curand_kernel.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 __global__ void sample_student_t_kernel(
     float* samples,
     int n_samples,
@@ -34,3 +38,16 @@ __global__ void sample_student_t_kernel(
 // TODO: Add α-stable sampler
 // TODO: Add multivariate support
 
+#include "student_t_launch.h"
+
+void tailwarp_student_t_launch_kernel(
+    float* d_samples,
+    int n_samples,
+    float nu,
+    unsigned long long seed
+) {
+    if (!d_samples || n_samples <= 0) return;
+    const int threads = 256;
+    const int blocks = (n_samples + threads - 1) / threads;
+    sample_student_t_kernel<<<blocks, threads>>>(d_samples, n_samples, nu, seed);
+}

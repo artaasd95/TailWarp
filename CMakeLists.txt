@@ -51,6 +51,19 @@ if(BUILD_TESTS)
     endif()
 endif()
 
+# Examples
+add_executable(experiment_run examples/experiment_run.cpp)
+target_include_directories(experiment_run PRIVATE
+    ${CMAKE_SOURCE_DIR}/examples
+    ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(experiment_run tailwarp tailwarp_kernels)
+
+add_executable(cvar_position_sizing examples/cvar_position_sizing.cpp)
+target_include_directories(cvar_position_sizing PRIVATE
+    ${CMAKE_SOURCE_DIR}/examples
+    ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(cvar_position_sizing tailwarp tailwarp_kernels)
+
 # Installation
 install(TARGETS tailwarp tailwarp_kernels
     LIBRARY DESTINATION lib

@@ -1,6 +1,7 @@
 // Level 4 validation: End-to-end pipeline
 
-#include "../../src/algorithms/position_sizing.cpp"
+#include "../../src/algorithms/position_sizing.h"
+#include "../../src/algorithms/robust_covariance.h"
 #include <gtest/gtest.h>
 
 TEST(EndToEnd, CVaRPositionSizing) {
@@ -9,7 +10,7 @@ TEST(EndToEnd, CVaRPositionSizing) {
     float price = 100.0f;
     
     auto result = tailwarp::compute_position_size(
-        max_cvar, price, 1000000, 4.0f
+        max_cvar, price, 100000, 4.0f, 0.95f, 42ULL
     );
     
     // Should produce valid result
@@ -20,7 +21,15 @@ TEST(EndToEnd, CVaRPositionSizing) {
 }
 
 TEST(EndToEnd, RobustCovarianceEstimation) {
-    // TODO: Full pipeline for covariance estimation
-    EXPECT_TRUE(true);  // Placeholder
+    std::vector<std::vector<float>> ret;
+    for (int t = 0; t < 100; ++t) {
+        float a = static_cast<float>(t) * 0.01f;
+        float b = static_cast<float>(t) * 0.02f + 0.1f;
+        ret.push_back({a, b});
+    }
+    std::vector<float> cov = tailwarp::estimate_robust_covariance(ret, 10, 1e-6f);
+    ASSERT_EQ(cov.size(), 4u);
+    EXPECT_GT(cov[0], 0.0f);
+    EXPECT_GT(cov[3], 0.0f);
 }
 

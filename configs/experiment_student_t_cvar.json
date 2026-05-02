@@ -1,0 +1,8 @@
+{
+  "name": "student_t_cvar_baseline",
+  "sampler": "student_t",
+  "n_samples": 200000,
+  "nu": 4.0,
+  "seed": 42,
+  "alpha": 0.95
+}
