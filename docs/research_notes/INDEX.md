@@ -8,6 +8,7 @@ Human-readable studies and references in this folder.
 | [risk-categories-init.md](risk-categories-init.md) | Priorities, gates, deferred streams |
 | [fattail-volatility-surface-books.md](fattail-volatility-surface-books.md) | Taleb / Gatheral chapter mapping to lenses |
 | [phase1_gaussian_baseline.md](phase1_gaussian_baseline.md) | Gaussian / VaR-CVaR baseline status |
+| [RISK-LENSES-METRICS-INVENTORY.md](RISK-LENSES-METRICS-INVENTORY.md) | All 10 lenses: metrics vs implemented code paths |
 
 ## Conventions
 
