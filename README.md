@@ -41,6 +41,7 @@ Optional: `make` builds CUDA objects only (see [Makefile](Makefile)); prefer CMa
 TailWarp/
 ├── src/               # CUDA kernels, wrappers, algorithms
 ├── tests/             # Unit tests, validation, integration tests
+├── app/               # Optional Streamlit dashboards (CPU)
 ├── benchmarks/        # Performance evaluation suite
 ├── configs/           # Experiment configurations
 ├── data/              # Input data and experiment outputs
@@ -66,6 +67,17 @@ Based on "Statistical Consequences of Fat Tails" (Taleb) and Riemannian optimiza
 4. **Option Pricing**: Anchor-based tail pricing using EVT
 
 See [docs/ideas-plan.md](docs/ideas-plan.md) and [docs/project-plan-docs/](docs/project-plan-docs/) for workflow.
+
+## Black Swan dashboard (optional, CPU-only)
+
+Install Python dependencies, then run from the repository root:
+
+```bash
+pip install -r app/requirements-black-swan-dashboard.txt
+streamlit run app/streamlit_black_swan_dashboard.py
+```
+
+The default bundle is `benchmarks/results/sample_black_swan/`; replay rows live under `data/input/sample_replays/`. No GPU is required for this path.
 
 ## Documentation
 

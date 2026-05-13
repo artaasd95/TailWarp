@@ -556,3 +556,6 @@ pyrightconfig.json
 
 explain-text-prompt.txt
 implement-code-prompt.txt
+*.csv
+*.json
+*.png
