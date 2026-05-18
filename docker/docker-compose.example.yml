@@ -1,0 +1,83 @@
+# docker-compose.yml (TEMPLATE FOR REFERENCE ONLY)
+#
+# PURPOSE: Example of how to orchestrate CPU demo and CUDA benchmark services.
+# STATUS: This is a TEMPLATE EXAMPLE, not a live CI file.
+# 
+# Usage (if you want to use Docker Compose):
+# 1. Copy this file to docker-compose.example.yml (DO NOT USE docker-compose.yml directly in CI)
+# 2. Customize for your environment (GPU availability, volume mounts, etc.)
+# 3. Run: docker-compose -f docker-compose.example.yml up
+#
+# For actual CI pipelines, see .github/workflows/ (use explicit docker build/run commands, not compose)
+#
+
+version: '3.8'
+
+services:
+  # CPU Demo Service: Streamlit dashboard
+  tailwarp-demo:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.demo
+    container_name: tailwarp-demo
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    volumes:
+      - ./data/input:/app/data/input:ro
+      - ./data/output:/app/data/output:rw
+    # CPU-only: no GPU required
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # CUDA Benchmark Service (GPU-required)
+  # WARNING: This service requires GPU access.
+  # Only use on machines with NVIDIA GPUs and Docker GPU runtime installed.
+  # 
+  # To enable GPU support, add to docker daemon config:
+  # /etc/docker/daemon.json:
+  # {
+  #   "runtimes": {
+  #     "nvidia": {
+  #       "path": "nvidia-container-runtime",
+  #       "runtimeArgs": []
+  #     }
+  #   }
+  # }
+  
+  tailwarp-cuda:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cuda
+      args:
+        CUDA_VERSION: 12.2
+    container_name: tailwarp-cuda
+    # GPU runtime: uncomment if Docker GPU support is configured
+    # runtime: nvidia
+    environment:
+      - CUDA_VISIBLE_DEVICES=0  # Use first GPU; change for multiple GPUs
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./configs:/app/configs:ro
+      - ./data/input:/app/data/input:ro
+      - ./data/output:/app/data/output:rw
+      - ./benchmarks:/app/benchmarks:rw
+    # Override default command for custom experiments
+    # command: ./build/examples/experiment_run configs/experiment_student_t_cvar.json
+    stdin_open: true
+    tty: true
+
+networks:
+  default:
+    driver: bridge
+
+# Volume definitions (optional, for named volumes)
+volumes:
+  benchmark_results:
+    driver: local

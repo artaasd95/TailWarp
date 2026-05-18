@@ -4,17 +4,28 @@ Geometric methods for tail-aware risk optimization using GPU acceleration.
 
 ## Overview
 
-TailWarp implements Riemannian optimization on manifolds (SPD, Fisher-Rao) for robust risk measurement, position sizing, hedging, and portfolio allocation under heavy-tailed distributions.
+TailWarp implements **Black Swan Defense** — a GPU-accelerated framework for tail-aware risk measurement and survival under heavy-tailed distributions. Current focus (S2-01) is on validated primitives: solvency distance, drawdown pain, CVaR-constrained sizing, and Student-t sampling for realistic fat-tail scenarios.
 
-**Implemented today**
-- GPU sampling: Student-t, Gaussian (univariate)
-- CUDA metrics: drawdown/pain, structural ruin, basic exposure (see `src/core/`)
-- Host API: VaR / CVaR / summary stats; wrappers call GPU samplers
-- Example CLIs: `experiment_run` (artifact folder), `cvar_position_sizing`
+**Why Black Swan Defense?**
+Black swans (rare, unpredictable extreme events) live in "Extremistan" where:
+- Traditional mean-variance models fail
+- Tail risk dominates realized losses
+- **We cannot eliminate black swan risk, only mitigate and antifragility-position**
 
-**Planned / partial (see [docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md](docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md))**
-- α-stable and multivariate samplers; EVT / POT tail validation
-- Full SPD manifold geometry (exp/log map, geodesic distance); Tyler M-estimator; Riemannian optimization demos
+See [RESULTS.md](RESULTS.md) for the full claim-vs-measured separation and S2-01 scope lock.
+
+**Implemented & Validated Today** (Phase 1 — Survival Baseline)
+- ✅ GPU sampling: Student-t, Gaussian (univariate)
+- ✅ CUDA metrics: solvency distance, drawdown/pain, exposure/leverage (see `src/core/`)
+- ✅ Host API: VaR / CVaR / summary stats; wrappers call GPU samplers
+- ✅ Example CLIs: `experiment_run` (artifact folder), `cvar_position_sizing`
+- ✅ Warning state framework (green/yellow/red/critical with deterministic thresholds)
+
+**Planned & Partial** (Phase 2–3, explicitly excluded from S2-01 headline; see [docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md](docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md))
+- ⚠️ SPD manifold covariance (stubs exist, host pipeline incomplete)
+- ⚠️ Robust covariance via Tyler's M-estimator (manifold ops needed)
+- ⚠️ α-stable and multivariate samplers; EVT / POT tail validation
+- ⚠️ Riemannian optimization (geodesic distance, trust-region hedging)
 
 ## Quick Start
 
@@ -81,6 +92,7 @@ The default bundle is `benchmarks/results/sample_black_swan/`; replay rows live 
 
 ## Documentation
 
+- **Results & Claims:** [RESULTS.md](RESULTS.md) — Separates target Black Swan Defense claims from measured results (S2-01)
 - **Research Plan**: [docs/ideas-plan.md](docs/ideas-plan.md)
 - **Workflow**: `docs/project-plan-docs/QUICK-REFERENCE.md`
 - **Experiments**: `docs/EXPERIMENTS.md`

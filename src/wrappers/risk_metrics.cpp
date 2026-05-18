@@ -81,4 +81,138 @@ RiskMetrics compute_risk_metrics(const std::vector<float>& returns, float alpha)
     return m;
 }
 
+// ============================================================================
+// Warning State Computation (S2-02)
+// ============================================================================
+
+WarningStateResult compute_warning_state(const WarningStateParams& params) {
+    WarningStateResult result{};
+    result.state = WarningState::GREEN;
+    result.triggered_metrics = 0;
+
+    // Helper lambda: Check each metric and update state
+    auto check_solvency = [&]() {
+        int solvency_level = 0;  // 0=GREEN, 1=YELLOW, 2=RED, 3=CRITICAL
+        std::string solvency_msg;
+
+        if (params.solvency_distance <= 1.0f) {
+            solvency_level = 3;
+            solvency_msg = "solvency_distance ≤ 1σ (CRITICAL)";
+        } else if (params.solvency_distance <= 2.0f) {
+            solvency_level = 2;
+            solvency_msg = "solvency_distance 1-2σ (RED)";
+        } else if (params.solvency_distance <= 3.0f) {
+            solvency_level = 1;
+            solvency_msg = "solvency_distance 2-3σ (YELLOW)";
+        } else {
+            solvency_level = 0;
+            solvency_msg = "solvency_distance > 3σ (GREEN)";
+        }
+        return std::make_pair(solvency_level, solvency_msg);
+    };
+
+    auto check_drawdown = [&]() {
+        int drawdown_level = 0;
+        std::string drawdown_msg;
+
+        if (params.max_drawdown >= 0.60f) {
+            drawdown_level = 3;
+            drawdown_msg = "max_drawdown ≥ 60% (CRITICAL)";
+        } else if (params.max_drawdown >= 0.40f) {
+            drawdown_level = 2;
+            drawdown_msg = "max_drawdown 40-60% (RED)";
+        } else if (params.max_drawdown >= 0.20f) {
+            drawdown_level = 1;
+            drawdown_msg = "max_drawdown 20-40% (YELLOW)";
+        } else {
+            drawdown_level = 0;
+            drawdown_msg = "max_drawdown < 20% (GREEN)";
+        }
+        return std::make_pair(drawdown_level, drawdown_msg);
+    };
+
+    auto check_exposure = [&]() {
+        int exposure_level = 0;
+        std::string exposure_msg;
+
+        if (params.gross_exposure >= 8.0f) {
+            exposure_level = 3;
+            exposure_msg = "gross_exposure ≥ 8x (CRITICAL)";
+        } else if (params.gross_exposure >= 5.0f) {
+            exposure_level = 2;
+            exposure_msg = "gross_exposure 5-8x (RED)";
+        } else if (params.gross_exposure >= 3.0f) {
+            exposure_level = 1;
+            exposure_msg = "gross_exposure 3-5x (YELLOW)";
+        } else {
+            exposure_level = 0;
+            exposure_msg = "gross_exposure < 3x (GREEN)";
+        }
+        return std::make_pair(exposure_level, exposure_msg);
+    };
+
+    auto check_cvar = [&]() {
+        int cvar_level = 0;
+        std::string cvar_msg;
+
+        if (params.cvar_95 <= -0.25f) {
+            cvar_level = 3;
+            cvar_msg = "CVaR@95% ≤ -25% (CRITICAL)";
+        } else if (params.cvar_95 <= -0.15f) {
+            cvar_level = 2;
+            cvar_msg = "CVaR@95% -15% to -25% (RED)";
+        } else if (params.cvar_95 <= -0.10f) {
+            cvar_level = 1;
+            cvar_msg = "CVaR@95% -10% to -15% (YELLOW)";
+        } else {
+            cvar_level = 0;
+            cvar_msg = "CVaR@95% > -10% (GREEN)";
+        }
+        return std::make_pair(cvar_level, cvar_msg);
+    };
+
+    // Evaluate each metric
+    auto [solvency_level, solvency_msg] = check_solvency();
+    auto [drawdown_level, drawdown_msg] = check_drawdown();
+    auto [exposure_level, exposure_msg] = check_exposure();
+    auto [cvar_level, cvar_msg] = check_cvar();
+
+    // Determine overall state and triggered metrics
+    int max_level = std::max({solvency_level, drawdown_level, exposure_level, cvar_level});
+    result.state = static_cast<WarningState>(max_level);
+
+    // Record triggered metrics (bitmask)
+    if (solvency_level > 0) result.triggered_metrics |= (1 << 0);
+    if (drawdown_level > 0) result.triggered_metrics |= (1 << 1);
+    if (exposure_level > 0) result.triggered_metrics |= (1 << 2);
+    if (cvar_level > 0) result.triggered_metrics |= (1 << 3);
+
+    // Build reason string
+    std::string state_name;
+    switch (result.state) {
+        case WarningState::GREEN:    state_name = "GREEN"; break;
+        case WarningState::YELLOW:   state_name = "YELLOW"; break;
+        case WarningState::RED:      state_name = "RED"; break;
+        case WarningState::CRITICAL: state_name = "CRITICAL"; break;
+    }
+
+    result.reason = "WarningState " + state_name + ": ";
+    std::vector<std::string> triggered;
+    if (solvency_level > 0) triggered.push_back(solvency_msg);
+    if (drawdown_level > 0) triggered.push_back(drawdown_msg);
+    if (exposure_level > 0) triggered.push_back(exposure_msg);
+    if (cvar_level > 0) triggered.push_back(cvar_msg);
+
+    if (!triggered.empty()) {
+        for (size_t i = 0; i < triggered.size(); ++i) {
+            result.reason += triggered[i];
+            if (i < triggered.size() - 1) result.reason += " | ";
+        }
+    } else {
+        result.reason += "All metrics healthy";
+    }
+
+    return result;
+}
+
 }  // namespace tailwarp

@@ -1,0 +1,66 @@
+# TailWarp CPU Demo & Documentation Dockerfile
+#
+# PURPOSE: CPU-only image for development, documentation, and Black Swan dashboard visualization.
+# TARGET ENVIRONMENT: Development, CI docs build, Streamlit dashboard
+# NO GPU REQUIRED: All operations are single-threaded CPU
+#
+# BUILD: docker build -f docker/Dockerfile.demo -t tailwarp:demo .
+# RUN:   docker run -it --rm -p 8501:8501 tailwarp:demo streamlit run app/streamlit_black_swan_dashboard.py
+#
+
+FROM python:3.10-slim-bookworm
+
+LABEL maintainer="TailWarp Contributors"
+LABEL description="TailWarp CPU-only demo (documentation, dashboard, examples)"
+
+# Install system dependencies (no CUDA, no NVIDIA drivers)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies for docs and dashboard
+RUN pip install --no-cache-dir \
+    numpy \
+    pandas \
+    matplotlib \
+    plotly \
+    streamlit \
+    pyyaml \
+    sphinx \
+    sphinx-rtd-theme \
+    pytest
+
+WORKDIR /app
+
+# Copy repository (excluding large build artifacts)
+COPY . /app
+
+# Build documentation (CPU-only)
+RUN mkdir -p /app/build_docs && \
+    cmake -B /app/build_docs \
+           -DBUILD_TESTS=ON \
+           -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /app/build_docs --target help
+
+# Install Python application requirements
+RUN pip install --no-cache-dir -r app/requirements-black-swan-dashboard.txt
+
+# Expose port for Streamlit
+EXPOSE 8501
+
+# Health check: ensure Streamlit is responsive
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8501/_stcore/health')" || exit 1
+
+# Default command: run Streamlit dashboard
+CMD ["streamlit", "run", "app/streamlit_black_swan_dashboard.py", \
+     "--server.port=8501", "--server.address=0.0.0.0"]
+
+# Alternative commands for documentation:
+# - sphinx-build -b html docs/ docs/_build/html
+# - pytest tests/ -v
+# - python scripts/validate_experiment.py data/output/experiments/...
