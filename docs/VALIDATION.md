@@ -244,10 +244,10 @@ result = compute_warning_state(params);
 
 | Test | Expectation | Status |
 |------|-------------|--------|
-| **Unit: Monotonicity** | If any metric moves to worse threshold, state does not improve | ✅ (in `tests/unit/test_warning_state.cpp`) |
-| **Unit: Determinism** | Same inputs always produce same output | ✅ (property-based test) |
-| **Unit: Bitmask Accuracy** | Triggered metrics bitmask correctly reflects which metrics fired | ✅ (exhaustive threshold tests) |
-| **Integration: Real Portfolio** | Apply to sample experiment (Day 1 → Day 10 scenario) and verify state progression | ✅ (in `tests/integration/test_warning_state_scenario.cpp`) |
+| **Unit: Monotonicity** | If any metric moves to worse threshold, state does not improve | ✅ (`tests/unit/test_warning_state.cpp`) |
+| **Unit: Determinism** | Same inputs always produce same output | ✅ (`tests/unit/test_warning_state.cpp`) |
+| **Unit: Bitmask Accuracy** | Triggered metrics bitmask correctly reflects which metrics fired | ✅ (`tests/unit/test_warning_state.cpp`) |
+| **Integration: Real Portfolio** | Apply to sample experiment (Day 1 → Day 10 scenario) | ⚠️ Covered by replay benchmark smoke (CPU); full integration test deferred |
 
 ### Decision Log Entry (S2-02)
 
@@ -269,5 +269,50 @@ result = compute_warning_state(params);
 - Student-t scenario refresh (add correlation-driven CV to simple univariate thresholds)
 - Integration with live Streamlit dashboard for real-time warning display
 - Audit trail (log every state transition for post-incident review)
+
+---
+
+## Sprint S3: Black Swan Benchmark Path (CPU Replay)
+
+**Decision Date:** 2026-05-19  
+**Owner:** @artaasd95  
+**Acceptance Criteria:** Replay runner writes S2-compatible artifacts; warning state with named metric contributions; CPU CI smoke without GPU.
+
+### Benchmark inputs (unchanged Phase 1 primitives)
+
+| Input | Source in replay path | Notes |
+|-------|----------------------|-------|
+| CVaR @ 95% | Rolling window over `return` column | Host historical quantile (`benchmarks/risk_metrics.py`) |
+| Solvency distance | `equity`, rolling return σ, ruin floor | CPU approximation; GPU kernel optional |
+| Drawdown pain | Cumulative `equity` peak/trough | Positive decimal internally; headline JSON may negate for display |
+| Exposure / leverage | `exposure` column | Passed to `compute_warning_state` as `gross_exposure` |
+
+Optional **Student-t scenario refresh** (`student_t_scenario_refresh` in config): when enabled, draws Monte Carlo tail samples to stress CVaR; disabled in the bundled CPU sample.
+
+### Threshold rules
+
+Formal alert bands match S2-02 (`src/wrappers/risk_metrics.cpp` and `benchmarks/risk_metrics.py`). The replay runner also emits a **composite score** for short synthetic series so first-alert timestamps are measurable before full S2-02 bands fire on mild drawdowns.
+
+### Artifact contract
+
+Bundle directory (e.g. `benchmarks/results/sample_black_swan/`):
+
+- `results.json` — headline timestamps, `lead_time_seconds`, `risk`, `warning_state`, `k_runs`, `aggregation_policy`
+- `tailwarp_vs_variance.csv` — per-timestamp scores plus `warning_state` and metric columns
+- `summary.md`, `environment.json`, `artifacts/plots/*.png`
+
+### Tolerances
+
+| Check | Tolerance | Status |
+|-------|-----------|--------|
+| Python vs C++ warning state thresholds | Exact (same bands) | Unit tests |
+| Host CVaR monotonicity | Algebraic | Unit tests |
+| GPU vs CPU CVaR on 10M samples | ±0.01% relative | **Deferred** (no CUDA in CPU CI; technical debt S3-04) |
+| SPD / robust covariance on replay path | Not asserted | Out of scope Phase 1 |
+
+### CI
+
+- **CPU auto:** `.github/workflows/black_swan_smoke.yml` runs the sample replay and checks artifact paths.
+- **GPU manual:** Full CUDA kernel benchmark suite per `docs/project-plan-docs/CI-PLAN.md`.
 
 ---

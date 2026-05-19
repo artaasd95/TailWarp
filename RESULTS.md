@@ -196,7 +196,32 @@ CVaR (at 95% confidence):
 
 ---
 
-## Performance Baseline (V1, GPU: RTX 3060)
+### Test 4: Black Swan Replay Benchmark (Measured)
+
+**Label:** measured (not target)  
+**Artifact path:** [benchmarks/results/sample_black_swan/](benchmarks/results/sample_black_swan/)  
+**Environment:** [benchmarks/results/sample_black_swan/environment.json](benchmarks/results/sample_black_swan/environment.json)  
+**Config:** `benchmarks/configs/black_swan_replay.json`  
+**Scenario:** `sample_stress_2026q1` (`data/input/sample_replays/scenario_stress.csv`)
+
+| Field | Value |
+|-------|-------|
+| TailWarp first alert | 2026-01-05T09:00:00Z |
+| Variance EWMA baseline first alert | 2026-01-07T15:00:00Z |
+| Lead time Δ (baseline − TailWarp) | +194,400 s (+54 h) |
+| K runs | 1 |
+| Aggregation policy | `single_run` |
+| Terminal warning state | GREEN (formal S2-02 bands; composite replay score drives alert) |
+
+**Verified command:**
+
+```bash
+python benchmarks/run_black_swan_benchmark.py --config benchmarks/configs/black_swan_replay.json
+```
+
+**Limitations:** CPU-only replay path. GPU-sorted CVaR reproduction and Student-t scenario refresh (`student_t_scenario_refresh.enabled`) remain manual CUDA checks; see [docs/VALIDATION.md](docs/VALIDATION.md) (S3 benchmark path).
+
+---
 
 ### Throughput Metrics
 
@@ -228,6 +253,8 @@ CVaR (at 95% confidence):
 5. **Scenario Limitations:** Student-t model is univariate. Multi-dimensional Student-t with correlation structure is planned for Phase 2.
 
 6. **Stress Test Severity:** Warning state thresholds calibrated for *typical* trading environments. Extreme stress scenarios (e.g., circuit breaker halt) may require dynamic re-calibration.
+
+7. **Black Swan Replay (CPU sample):** The bundled `sample_stress_2026q1` replay uses a CPU composite score for short synthetic series. CUDA reproduction may differ on GPU-sorted CVaR; Student-t scenario refresh is optional and off by default.
 
 ---
 

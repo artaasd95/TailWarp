@@ -1,4 +1,6 @@
-# Optional: Black Swan replay dashboard (CPU-only, no CUDA).
+# Optional: Black Swan replay dashboard and benchmark runner (CPU-only, no CUDA).
 streamlit>=1.28.0
 pandas>=1.5.0
 plotly>=5.18.0
+matplotlib>=3.7.0
+pytest>=7.0.0

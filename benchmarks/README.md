@@ -1,17 +1,45 @@
 # Benchmarks
 
-Performance evaluation suite for CUDA kernels.
+Performance evaluation suite for CUDA kernels and Black Swan replay defense benchmarks.
 
 ## Structure
 
-- `configs/` - Benchmark configurations
-- `baselines/` - Reference performance numbers
-- `results/` - Benchmark outputs (timestamped)
+- `configs/` — Benchmark configurations (kernel suite, Black Swan replay)
+- `baselines/` — Reference performance numbers
+- `results/` — Benchmark outputs (timestamped bundles)
+- `run_black_swan_benchmark.py` — CPU-safe Black Swan replay runner (S3-01)
+- `risk_metrics.py` — Host-side warning state and CVaR helpers for the replay path
 
-## Running Benchmarks
+## Black Swan replay benchmark (CPU-safe)
+
+Config schema (`configs/black_swan_replay.json`):
+
+| Field | Purpose |
+|-------|---------|
+| `scenario_id` | Label for results bundle |
+| `replay_csv` | Replay stream (`timestamp`, `return`, `equity`, `exposure`, optional `variance_baseline`) |
+| `event_windows_json` | Sidecar with labeled ISO-8601 windows |
+| `output_dir` | Bundle directory under `results/` |
+| `k_runs` / `aggregation_policy` | Repeat runs and headline aggregation |
+| `tailwarp` | Alert threshold, window size, CVaR α, warning-state toggle |
+| `baseline` | Variance EWMA type, λ, alert threshold |
+| `student_t_scenario_refresh` | Optional Monte Carlo refresh (disabled in sample) |
+
+Run from repository root:
 
 ```bash
-# Run full benchmark suite
+pip install -r app/requirements-black-swan-dashboard.txt
+python benchmarks/run_black_swan_benchmark.py --config benchmarks/configs/black_swan_replay.json
+```
+
+Writes `results.json`, `summary.md`, `tailwarp_vs_variance.csv`, `environment.json`, and plots under the configured `output_dir`.
+
+Lead time convention: `baseline_first_alert_ts − tailwarp_first_alert_ts` (positive ⇒ TailWarp earlier).
+
+## Kernel performance suite
+
+```bash
+# Run full kernel benchmark suite (GPU; script planned)
 ./scripts/run_benchmarks.sh
 
 # Run specific kernel benchmark
@@ -28,3 +56,6 @@ Performance evaluation suite for CUDA kernels.
 
 Regression threshold: ±5% acceptable, >10% requires investigation.
 
+## CI
+
+CPU-safe Black Swan smoke: `.github/workflows/black_swan_smoke.yml` (no GPU). CUDA kernel benchmarks remain manual per [docs/project-plan-docs/CI-PLAN.md](../docs/project-plan-docs/CI-PLAN.md).

@@ -90,6 +90,17 @@ streamlit run app/streamlit_black_swan_dashboard.py
 
 The default bundle is `benchmarks/results/sample_black_swan/`; replay rows live under `data/input/sample_replays/`. No GPU is required for this path.
 
+### Black Swan replay benchmark (CPU-safe)
+
+Regenerate the sample artifact bundle from the repository root:
+
+```bash
+pip install -r app/requirements-black-swan-dashboard.txt
+python benchmarks/run_black_swan_benchmark.py --config benchmarks/configs/black_swan_replay.json
+```
+
+Outputs land in `benchmarks/results/sample_black_swan/` (`results.json`, `summary.md`, `tailwarp_vs_variance.csv`, plots, and `environment.json`). See [benchmarks/README.md](benchmarks/README.md) for config schema.
+
 ## Documentation
 
 - **Results & Claims:** [RESULTS.md](RESULTS.md) — Separates target Black Swan Defense claims from measured results (S2-01)

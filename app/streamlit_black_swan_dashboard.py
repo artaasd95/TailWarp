@@ -220,6 +220,12 @@ def main() -> None:
     lead_h = results.lead_time_seconds / 3600.0
     c3.metric("Lead time (baseline − TailWarp)", f"{lead_h:+.1f} h", help="Positive => TailWarp earlier")
 
+    if results.warning_state is not None:
+        ws = results.warning_state
+        st.caption(f"Terminal warning state: **{ws.state}** — {ws.reason}")
+        if ws.triggered_metrics:
+            st.caption(f"Triggered metrics: {', '.join(ws.triggered_metrics)}")
+
     st.info(
         "**Replay tail state:** "
         + ("**WARNING** (at or past TailWarp first alert)" if in_alert else "**CALM** (before first alert)")
@@ -270,9 +276,9 @@ def main() -> None:
     with st.expander("Limitations (sample bundle)"):
         st.markdown(
             """
-- Synthetic CSV only; not produced by `run_black_swan_benchmark.py` yet.
-- Thresholds and scores are illustrative.
-- No GPU or CUDA dependency in this dashboard path.
+- CPU-only replay benchmark; CUDA reproduction may differ on GPU-sorted CVaR.
+- Composite replay score uses softer normalization than formal S2-02 bands on short series.
+- Student-t scenario refresh is optional and disabled in the default config.
 """
         )
     with st.expander("Command (from results.json)"):

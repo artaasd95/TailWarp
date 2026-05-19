@@ -51,8 +51,25 @@ class ReplayEventsSidecar:
 
 
 @dataclass
+class WarningStateArtifact:
+    state: str
+    reason: str
+    triggered_metrics: list[str]
+    contributions: dict[str, dict[str, Any]]
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> "WarningStateArtifact":
+        return WarningStateArtifact(
+            state=str(d.get("state", "GREEN")),
+            reason=str(d.get("reason", "")),
+            triggered_metrics=list(d.get("triggered_metrics", [])),
+            contributions=dict(d.get("contributions", {})),
+        )
+
+
+@dataclass
 class BlackSwanResults:
-    """Subset of results.json produced by benchmarks/run_black_swan_benchmark.py (future)."""
+    """Subset of results.json produced by benchmarks/run_black_swan_benchmark.py."""
 
     schema_version: int
     scenario_id: str
@@ -68,10 +85,14 @@ class BlackSwanResults:
     max_exposure: float
     plots: list[str] = field(default_factory=list)
     command: str = ""
+    k_runs: int = 1
+    aggregation_policy: str = "single_run"
+    warning_state: Optional[WarningStateArtifact] = None
 
     @staticmethod
     def from_dict(d: dict[str, Any]) -> "BlackSwanResults":
         risk = d.get("risk") or {}
+        ws_raw = d.get("warning_state")
         return BlackSwanResults(
             schema_version=int(d.get("schema_version", 1)),
             scenario_id=str(d["scenario_id"]),
@@ -93,6 +114,11 @@ class BlackSwanResults:
             max_exposure=float(risk.get("max_exposure", d.get("max_exposure", 0.0))),
             plots=list(d.get("plots", [])),
             command=str(d.get("command", "")),
+            k_runs=int(d.get("k_runs", 1)),
+            aggregation_policy=str(d.get("aggregation_policy", "single_run")),
+            warning_state=(
+                WarningStateArtifact.from_dict(ws_raw) if ws_raw else None
+            ),
         )
 
 

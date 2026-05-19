@@ -1,0 +1,71 @@
+name: Black Swan CPU smoke
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  black-swan-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install benchmark dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pandas matplotlib pytest
+          pip install -r app/requirements-black-swan-dashboard.txt
+
+      - name: Run Black Swan replay benchmark
+        run: |
+          python benchmarks/run_black_swan_benchmark.py \
+            --config benchmarks/configs/black_swan_replay.json
+
+      - name: Verify artifact bundle
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          bundle = Path("benchmarks/results/sample_black_swan")
+          required = [
+              "results.json",
+              "summary.md",
+              "environment.json",
+              "tailwarp_vs_variance.csv",
+              "artifacts/plots/signals.png",
+              "artifacts/plots/equity_stress.png",
+          ]
+          failed = []
+          for rel in required:
+              p = bundle / rel
+              if not p.exists():
+                  failed.append(str(p))
+          if failed:
+              print("Missing artifacts:", ", ".join(failed), file=sys.stderr)
+              sys.exit(1)
+
+          data = json.loads((bundle / "results.json").read_text())
+          if data.get("lead_time_seconds", 0) <= 0:
+              print(
+                  "lead_time_seconds must be positive for sample stress scenario",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+          if "warning_state" not in data:
+              print("results.json missing warning_state block", file=sys.stderr)
+              sys.exit(1)
+          print("Black Swan smoke OK:", bundle)
+          PY
+
+      - name: Pytest validation (benchmark metrics)
+        run: pytest tests/validation/test_benchmark_risk_metrics.py -v
+
+      # CPU-safe gate only. Full CUDA benchmark reproduction remains manual per CI-PLAN.md.
