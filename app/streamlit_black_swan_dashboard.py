@@ -3,6 +3,9 @@ Black Swan replay dashboard: reads benchmark artifact bundle (no GPU).
 
 Run from repository root:
   streamlit run app/streamlit_black_swan_dashboard.py
+
+Run selection: sidebar lists every benchmarks/results/<run_id>/ with results.json.
+See dashboard/README.md for the artifact contract.
 """
 
 from __future__ import annotations
@@ -15,8 +18,11 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from black_swan_loader import (
+    ArtifactLoadError,
     BlackSwanResults,
+    DRIVER_METRIC_COLUMNS,
     ReplayEventsSidecar,
+    discover_runs,
     lead_time_seconds,
     load_environment,
     load_replay_csv,
@@ -24,11 +30,8 @@ from black_swan_loader import (
     load_tailwarp_vs_variance,
     repo_root,
     resolve_under_repo,
+    results_root,
 )
-
-
-def _default_bundle() -> Path:
-    return repo_root() / "benchmarks" / "results" / "sample_black_swan"
 
 
 def _replay_path(results: BlackSwanResults, override: Optional[str]) -> Path:
@@ -75,7 +78,7 @@ def _fig_replay(df: pd.DataFrame, events: ReplayEventsSidecar) -> go.Figure:
             )
         )
     fig.update_layout(
-        title="Replay stream (same series drives TailWarp and variance baseline in sample)",
+        title="Replay stream",
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         yaxis=dict(title="equity"),
@@ -117,7 +120,7 @@ def _fig_variance_baseline(df: pd.DataFrame) -> go.Figure:
             )
         )
     fig.update_layout(
-        title="Variance baseline (same replay timestamps)",
+        title="Variance baseline (replay column)",
         margin=dict(l=48, r=24, t=48, b=48),
     )
     return fig
@@ -151,19 +154,92 @@ def _fig_tailwarp_vs_var(dfc: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def _fig_metric_drivers(dfc: pd.DataFrame) -> Optional[go.Figure]:
+    cols = [c for c in DRIVER_METRIC_COLUMNS if c in dfc.columns]
+    if not cols or "timestamp" not in dfc.columns:
+        return None
+    fig = go.Figure()
+    for col in cols:
+        fig.add_trace(
+            go.Scatter(x=dfc["timestamp"], y=dfc[col], name=col, mode="lines")
+        )
+    fig.update_layout(
+        title="Warning-state metric drivers (per timestamp)",
+        hovermode="x unified",
+        margin=dict(l=48, r=24, t=48, b=48),
+    )
+    return fig
+
+
+def _contributions_dataframe(results: BlackSwanResults) -> Optional[pd.DataFrame]:
+    if results.warning_state is None or not results.warning_state.contributions:
+        return None
+    rows = []
+    for name, detail in results.warning_state.contributions.items():
+        rows.append(
+            {
+                "metric": name,
+                "level": detail.get("level", ""),
+                "value": detail.get("value"),
+                "message": detail.get("message", ""),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _resolve_bundle_from_sidebar(
+    discovered: list,
+    override_path: str,
+) -> Optional[Path]:
+    if override_path.strip():
+        p = Path(override_path.strip())
+        return p if p.is_absolute() else repo_root() / p
+    if not discovered:
+        return None
+    labels = [r.label for r in discovered]
+    choice = st.session_state.get("run_select")
+    if choice in labels:
+        return discovered[labels.index(choice)].bundle_dir
+    return discovered[0].bundle_dir
+
+
 def main() -> None:
     st.set_page_config(page_title="TailWarp Black Swan", layout="wide")
     st.title("Black Swan defense calibration (replay)")
-    root = repo_root()
+
+    discovered = discover_runs()
 
     with st.sidebar:
         st.header("Artifact bundle")
-        bundle_str = st.text_input(
-            "Bundle directory",
-            value=str(_default_bundle()),
-            help="Folder containing results.json, summary.md, tailwarp_vs_variance.csv, environment.json",
+        st.caption(
+            f"Scans `{results_root().relative_to(repo_root())}/` for folders containing "
+            "`results.json`. Pick a run or enter a custom path."
         )
-        bundle = Path(bundle_str)
+        if discovered:
+            run_labels = [r.label for r in discovered]
+            st.selectbox(
+                "Run",
+                options=run_labels,
+                key="run_select",
+                help="Most recently modified bundles appear first.",
+            )
+        else:
+            st.warning(
+                f"No runs found under {results_root()}. "
+                "Run the benchmark runner to generate a bundle."
+            )
+
+        override_path = st.text_input(
+            "Custom bundle path (optional)",
+            value="",
+            help="Overrides Run when set. Absolute path or repo-relative.",
+        )
+        if discovered and not override_path.strip():
+            idx = 0
+            if st.session_state.get("run_select") in [r.label for r in discovered]:
+                idx = [r.label for r in discovered].index(st.session_state["run_select"])
+            st.caption(f"Using: `{discovered[idx].bundle_dir}`")
+
         replay_override = st.text_input(
             "Optional replay CSV override",
             value="",
@@ -175,17 +251,57 @@ def main() -> None:
             help="Leave empty to use event_windows_relative from results.json",
         )
 
-    if not bundle.exists():
-        st.error(f"Bundle not found: {bundle}")
+        with st.expander("Help"):
+            st.markdown(
+                """
+**Generate a bundle**
+
+```bash
+python benchmarks/run_black_swan_benchmark.py \\
+  --config benchmarks/configs/black_swan_replay.json
+```
+
+**Layout** — each run is a directory under `benchmarks/results/<run_id>/` with
+`results.json`, `tailwarp_vs_variance.csv`, `environment.json`, and plots.
+
+**CUDA reproduction** — use a separate output directory and set
+`cuda_measured: true` in config when GPU CI is available (next sprint).
+"""
+            )
+
+    bundle = _resolve_bundle_from_sidebar(discovered, override_path)
+    if bundle is None:
+        st.error(
+            f"No benchmark bundles under {results_root()}. "
+            "Run `benchmarks/run_black_swan_benchmark.py` first."
+        )
         st.stop()
 
-    results = load_results(bundle)
+    if not bundle.exists():
+        st.error(f"Bundle directory not found: {bundle}")
+        st.stop()
+
+    try:
+        results = load_results(bundle)
+    except ArtifactLoadError as exc:
+        st.error(str(exc))
+        if exc.path:
+            st.caption(f"Path: {exc.path}")
+        st.stop()
+
     env = load_environment(bundle)
-    dfcmp = load_tailwarp_vs_variance(bundle)
+
+    try:
+        dfcmp = load_tailwarp_vs_variance(bundle)
+    except ArtifactLoadError as exc:
+        st.error(str(exc))
+        st.stop()
 
     replay_path = _replay_path(results, replay_override or None)
-    if not replay_path.exists():
-        st.error(f"Replay CSV not found: {replay_path}")
+    try:
+        df = load_replay_csv(replay_path)
+    except ArtifactLoadError as exc:
+        st.error(str(exc))
         st.stop()
 
     events_path = _events_path(results, events_override or None)
@@ -193,9 +309,14 @@ def main() -> None:
         st.error(f"Events JSON not found: {events_path}")
         st.stop()
 
-    df = load_replay_csv(replay_path)
     events = ReplayEventsSidecar.from_path(events_path)
     df = _equity_drawdown(df)
+
+    st.caption(
+        f"Bundle: `{bundle}` · scenario **{results.scenario_id}** · "
+        f"schema v{results.schema_version} · {results.measurement_label} · "
+        f"k={results.k_runs} · {results.aggregation_policy}"
+    )
 
     recomputed = lead_time_seconds(
         results.tailwarp_first_alert_ts,
@@ -214,21 +335,73 @@ def main() -> None:
         in_alert = last_i >= warn_idx
 
     st.subheader("Warning state")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("TailWarp first alert (UTC)", results.tailwarp_first_alert_ts[:19].replace("T", " "))
-    c2.metric("Baseline first alert (UTC)", results.baseline_variance_ewma_first_alert_ts[:19].replace("T", " "))
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric(
+        "TailWarp first alert (UTC)",
+        results.tailwarp_first_alert_ts[:19].replace("T", " "),
+    )
+    c2.metric(
+        "Baseline first alert (UTC)",
+        results.baseline_variance_ewma_first_alert_ts[:19].replace("T", " "),
+    )
     lead_h = results.lead_time_seconds / 3600.0
-    c3.metric("Lead time (baseline − TailWarp)", f"{lead_h:+.1f} h", help="Positive => TailWarp earlier")
+    c3.metric(
+        "Lead time (baseline − TailWarp)",
+        f"{lead_h:+.1f} h",
+        help="Positive => TailWarp earlier",
+    )
+    terminal_state = (
+        results.warning_state.state if results.warning_state else "—"
+    )
+    c4.metric("Terminal warning state", terminal_state)
 
     if results.warning_state is not None:
         ws = results.warning_state
-        st.caption(f"Terminal warning state: **{ws.state}** — {ws.reason}")
+        st.caption(f"**{ws.state}** — {ws.reason}")
         if ws.triggered_metrics:
             st.caption(f"Triggered metrics: {', '.join(ws.triggered_metrics)}")
 
+        contrib_df = _contributions_dataframe(results)
+        if contrib_df is not None:
+            st.subheader("Metric drivers (terminal)")
+            st.dataframe(
+                contrib_df,
+                use_container_width=True,
+                column_config={
+                    "level": st.column_config.TextColumn("level"),
+                    "value": st.column_config.NumberColumn("value", format="%.4f"),
+                },
+            )
+
+    driver_fig = _fig_metric_drivers(dfcmp)
+    if driver_fig is not None:
+        st.subheader("Metric drivers (time series)")
+        st.plotly_chart(driver_fig, use_container_width=True)
+
+    if results.posture is not None:
+        st.subheader("Posture (S5 heuristics)")
+        p = results.posture
+        pc1, pc2, pc3 = st.columns(3)
+        if p.convexity_score is not None:
+            pc1.metric("Convexity score", f"{p.convexity_score:+.3f}")
+        else:
+            pc1.metric("Convexity score", "—")
+        pc2.metric("Antifragility posture", p.antifragility_posture)
+        pc3.metric("Complexity regime", p.complexity_regime)
+        if p.excluded_from_headline:
+            st.caption(
+                "Excluded from headline: "
+                + ", ".join(p.excluded_from_headline)
+                + f" · status: {p.status}"
+            )
+
     st.info(
         "**Replay tail state:** "
-        + ("**WARNING** (at or past TailWarp first alert)" if in_alert else "**CALM** (before first alert)")
+        + (
+            "**WARNING** (at or past TailWarp first alert)"
+            if in_alert
+            else "**CALM** (before first alert)"
+        )
     )
 
     st.subheader("Lead time delta")
@@ -239,16 +412,16 @@ def main() -> None:
 
     st.subheader("Replay stream and event windows")
     st.plotly_chart(_fig_replay(df, events), use_container_width=True)
-    c4, c5 = st.columns(2)
-    with c4:
-        st.plotly_chart(_fig_returns(df), use_container_width=True)
+    c5, c6 = st.columns(2)
     with c5:
+        st.plotly_chart(_fig_returns(df), use_container_width=True)
+    with c6:
         st.plotly_chart(_fig_variance_baseline(df), use_container_width=True)
 
-    st.subheader("Variance baseline (replay column) vs comparison CSV")
+    st.subheader("Variance baseline vs comparison CSV")
     st.plotly_chart(_fig_tailwarp_vs_var(dfcmp), use_container_width=True)
 
-    st.subheader("Solvency / CVaR / drawdown / exposure")
+    st.subheader("Solvency / CVaR / drawdown / exposure (headline)")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Solvency distance", f"{results.solvency_distance:.2f}")
     m2.metric("CVaR (95%)", f"{results.cvar_95:.3f}")
@@ -271,22 +444,35 @@ def main() -> None:
     summary_path = bundle / "summary.md"
     if summary_path.exists():
         st.markdown(summary_path.read_text(encoding="utf-8"))
+    else:
+        st.warning(f"Missing summary.md in bundle: {summary_path}")
+
+    limitations = list(results.limitations)
+    if env.get("notes"):
+        limitations.append(str(env["notes"]))
+
+    with st.expander("Limitations"):
+        if limitations:
+            for line in limitations:
+                st.markdown(f"- {line}")
+        else:
+            st.caption("No limitations recorded in results.json.")
+
     with st.expander("Environment metadata (environment.json)"):
-        st.json(env)
-    with st.expander("Limitations (sample bundle)"):
-        st.markdown(
-            """
-- CPU-only replay benchmark; CUDA reproduction may differ on GPU-sorted CVaR.
-- Composite replay score uses softer normalization than formal S2-02 bands on short series.
-- Student-t scenario refresh is optional and disabled in the default config.
-"""
-        )
+        if "_error" in env:
+            st.warning(env["_error"])
+        else:
+            st.json(env)
+
     with st.expander("Command (from results.json)"):
         st.code(results.command or "(not recorded)", language="text")
 
     with st.expander("Optional labels (last rows)"):
         if "label" in df.columns:
-            st.dataframe(df[["timestamp", "label", "equity", "exposure"]].tail(8), use_container_width=True)
+            st.dataframe(
+                df[["timestamp", "label", "equity", "exposure"]].tail(8),
+                use_container_width=True,
+            )
         else:
             st.caption("No label column in replay CSV.")
 

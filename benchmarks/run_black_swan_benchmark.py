@@ -13,6 +13,7 @@ import argparse
 import json
 import math
 import platform
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+from benchmarks.posture_metrics import compute_posture_block  # noqa: E402
 from benchmarks.risk_metrics import (  # noqa: E402
     WarningState,
     WarningStateParams,
@@ -38,6 +40,10 @@ from benchmarks.risk_metrics import (  # noqa: E402
     max_drawdown_from_equity,
     replay_composite_score,
 )
+
+SCHEMA_VERSION_DEFAULT = 2
+MEASUREMENT_LABEL_CPU = "cpu_sample"
+MEASUREMENT_LABEL_CUDA = "cuda_measured"
 
 
 def repo_root() -> Path:
@@ -269,19 +275,114 @@ def write_plots(
     return rel_paths
 
 
-def write_environment(out_dir: Path) -> None:
-    env = {
+def _git_commit() -> Optional[str]:
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_root(),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        if proc.returncode == 0:
+            return proc.stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def _cuda_environment() -> dict[str, Any]:
+    """Best-effort GPU metadata (null when CUDA unavailable)."""
+    meta: dict[str, Any] = {
+        "gpu_model": None,
+        "driver_version": None,
+        "cuda_version": None,
+        "build_json": None,
+    }
+    build_path = repo_root() / "build.json"
+    if build_path.is_file():
+        try:
+            meta["build_json"] = json.loads(build_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            meta["build_json"] = str(build_path)
+    try:
+        proc = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,driver_version",
+                "--format=csv,noheader",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            parts = [p.strip() for p in proc.stdout.strip().split(",", 1)]
+            meta["gpu_model"] = parts[0] if parts else None
+            meta["driver_version"] = parts[1] if len(parts) > 1 else None
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    try:
+        import torch  # type: ignore
+
+        if torch.cuda.is_available():
+            meta["cuda_version"] = getattr(torch.version, "cuda", None)
+            if meta["gpu_model"] is None and torch.cuda.device_count() > 0:
+                meta["gpu_model"] = torch.cuda.get_device_name(0)
+    except ImportError:
+        pass
+    return meta
+
+
+def write_environment(out_dir: Path, *, cuda_measured: bool = False) -> dict[str, Any]:
+    cuda_meta = _cuda_environment()
+    has_gpu = cuda_meta.get("gpu_model") is not None
+    env: dict[str, Any] = {
         "hostname": platform.node(),
         "os": platform.platform(),
         "python": platform.python_version(),
-        "gpu": None,
-        "cpu_only": True,
+        "git_commit": _git_commit(),
+        "gpu": cuda_meta.get("gpu_model"),
+        "gpu_model": cuda_meta.get("gpu_model"),
+        "driver_version": cuda_meta.get("driver_version"),
+        "cuda_version": cuda_meta.get("cuda_version"),
+        "build_json": cuda_meta.get("build_json"),
+        "cpu_only": not cuda_measured and not has_gpu,
+        "measurement_label": (
+            MEASUREMENT_LABEL_CUDA if cuda_measured else MEASUREMENT_LABEL_CPU
+        ),
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "notes": "CPU-safe Black Swan replay benchmark; no CUDA required.",
+        "notes": (
+            "CUDA Black Swan replay reproduction."
+            if cuda_measured
+            else "CPU-safe Black Swan replay benchmark; no CUDA required."
+        ),
     }
     (out_dir / "environment.json").write_text(
         json.dumps(env, indent=2) + "\n", encoding="utf-8"
     )
+    return env
+
+
+def default_limitations(*, cuda_measured: bool) -> list[str]:
+    lines = [
+        "Composite replay score uses softer normalization than formal S2-02 bands on short series.",
+        "Student-t scenario refresh is optional and disabled in the default config.",
+        "SPD manifold and robust covariance are excluded from headline posture metrics.",
+    ]
+    if cuda_measured:
+        lines.insert(
+            0,
+            "CUDA-measured row: GPU-sorted CVaR may differ from CPU historical quantile.",
+        )
+    else:
+        lines.insert(
+            0,
+            "CPU-only replay benchmark; CUDA reproduction may differ on GPU-sorted CVaR.",
+        )
+    return lines
 
 
 def write_summary(
@@ -290,9 +391,22 @@ def write_summary(
     tw_alert: str,
     bl_alert: str,
     lead_time: float,
+    *,
+    posture: Optional[dict[str, Any]] = None,
+    measurement_label: str = MEASUREMENT_LABEL_CPU,
+    k_runs: int = 1,
+    aggregation_policy: str = "single_run",
 ) -> None:
     lead_h = lead_time / 3600.0
-    text = f"""# Black Swan sample benchmark
+    posture_rows = ""
+    if posture:
+        posture_rows = f"""
+| Convexity score | {posture.get("convexity_score", "—")} |
+| Antifragility posture | {posture.get("antifragility_posture", "—")} |
+| Complexity regime | {posture.get("complexity_regime", "—")} |
+| Posture status | {posture.get("status", "—")} |
+"""
+    text = f"""# Black Swan benchmark — {scenario_id}
 
 Synthetic **stress** replay. TailWarp triggers on warning-state composite score;
 the variance EWMA baseline uses the **same** return stream.
@@ -301,16 +415,19 @@ the variance EWMA baseline uses the **same** return stream.
 
 | Field | Value |
 |-------|-------|
+| Measurement | {measurement_label} |
 | Scenario | {scenario_id} |
+| K runs | {k_runs} |
+| Aggregation | {aggregation_policy} |
 | TailWarp first alert | {tw_alert} |
 | Baseline first alert | {bl_alert} |
 | Lead time | {lead_h:+.1f} h |
-
+{posture_rows}
 ## Limitations
 
-- CPU-only replay path; CUDA reproduction may differ on GPU-sorted CVaR.
-- Student-t scenario refresh optional and disabled in default config.
 - Thresholds are deterministic per docs/VALIDATION.md (S2-02).
+- Posture metrics use CPU replay heuristics until Lens-5 kernels ship.
+- SPD / robust covariance excluded from headline rows.
 """
     (out_dir / "summary.md").write_text(text, encoding="utf-8")
 
@@ -329,9 +446,23 @@ def run_benchmark(config_path: Path) -> Path:
     replay_rel = Path(config["replay_csv"]).as_posix()
     events_rel = Path(config["event_windows_json"]).as_posix()
 
+    returns = result["df"]["return"].astype(float).tolist()
+    posture = compute_posture_block(returns)
+    cuda_measured = bool(config.get("cuda_measured", False))
+    measurement_label = str(
+        config.get(
+            "measurement_label",
+            MEASUREMENT_LABEL_CUDA if cuda_measured else MEASUREMENT_LABEL_CPU,
+        )
+    )
+    limitations = config.get("limitations") or default_limitations(
+        cuda_measured=cuda_measured
+    )
+
     results_doc = {
-        "schema_version": int(config.get("schema_version", 1)),
+        "schema_version": int(config.get("schema_version", SCHEMA_VERSION_DEFAULT)),
         "scenario_id": config["scenario_id"],
+        "measurement_label": measurement_label,
         "tailwarp_first_alert_ts": result["tailwarp_first_alert_ts"],
         "baseline_variance_ewma_first_alert_ts": result["baseline_first_alert_ts"],
         "lead_time_seconds": result["lead_time_seconds"],
@@ -342,6 +473,8 @@ def run_benchmark(config_path: Path) -> Path:
         "aggregation_policy": config.get("aggregation_policy", "single_run"),
         "risk": result["headline_risk"],
         "warning_state": result["warning_state"],
+        "posture": posture,
+        "limitations": limitations,
         "plots": [],
         "command": command,
     }
@@ -359,13 +492,17 @@ def run_benchmark(config_path: Path) -> Path:
         out_dir / "tailwarp_vs_variance.csv", index=False
     )
 
-    write_environment(out_dir)
+    write_environment(out_dir, cuda_measured=cuda_measured)
     write_summary(
         out_dir,
         config["scenario_id"],
         result["tailwarp_first_alert_ts"],
         result["baseline_first_alert_ts"],
         result["lead_time_seconds"],
+        posture=posture,
+        measurement_label=measurement_label,
+        k_runs=int(config.get("k_runs", 1)),
+        aggregation_policy=str(config.get("aggregation_policy", "single_run")),
     )
 
     return out_dir

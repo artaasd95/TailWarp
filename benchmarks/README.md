@@ -32,9 +32,21 @@ pip install -r app/requirements-black-swan-dashboard.txt
 python benchmarks/run_black_swan_benchmark.py --config benchmarks/configs/black_swan_replay.json
 ```
 
-Writes `results.json`, `summary.md`, `tailwarp_vs_variance.csv`, `environment.json`, and plots under the configured `output_dir`.
+Writes `results.json` (schema v2: `posture`, `limitations`, `measurement_label`), `summary.md`, `tailwarp_vs_variance.csv`, `environment.json`, and plots under the configured `output_dir`.
 
 Lead time convention: `baseline_first_alert_ts − tailwarp_first_alert_ts` (positive ⇒ TailWarp earlier).
+
+### Dashboard
+
+```bash
+streamlit run app/streamlit_black_swan_dashboard.py
+```
+
+Discovers all runs under `results/`; see [dashboard/README.md](../dashboard/README.md).
+
+### CUDA reproduction (next sprint)
+
+Set `cuda_measured: true` and a distinct `output_dir` in config (template: `configs/black_swan_replay_cuda.json`). Record a **CUDA-measured** row in [RESULTS.md](../RESULTS.md). Manual parity: [Tech-Debt.md](../Tech-Debt.md) (TD-TW-02).
 
 ## Kernel performance suite
 

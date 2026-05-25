@@ -316,3 +316,49 @@ Bundle directory (e.g. `benchmarks/results/sample_black_swan/`):
 - **GPU manual:** Full CUDA kernel benchmark suite per `docs/project-plan-docs/CI-PLAN.md`.
 
 ---
+
+## Sprint S5: Posture metrics and CUDA reproduction (schema v2)
+
+**Decision Date:** 2026-05-25  
+**Owner:** @artaasd95  
+**Depends on:** S3 Black Swan bundle (CPU replay)
+
+### `results.json` posture block (schema_version ≥ 2)
+
+| Field | Meaning | Headline row? |
+|-------|---------|---------------|
+| `convexity_score` | Payoff asymmetry in [-1, 1] from replay returns (CPU heuristic) | Yes |
+| `antifragility_posture` | `antifragile_lean` \| `neutral` \| `fragile` \| `insufficient_data` | Yes |
+| `complexity_regime` | `stable` \| `elevated_vol` \| `compressing_vol` \| `insufficient_data` | Yes |
+| `status` | `cpu_replay_heuristic` until Lens-5 kernels ship | Metadata |
+| `excluded_from_headline` | Always includes `spd_manifold`, `robust_covariance` | N/A |
+
+**Threshold rules (CPU replay heuristics):**
+
+- Convexity: \((\sum r^+ - \sum |r^-|) / (\sum r^+ + \sum |r^-|)\); not option convexity CI.
+- Antifragility: tail spread of top/bottom 5% of returns combined with convexity sign.
+- Complexity: ratio of rolling σ in second half vs first half of replay (>1.5 ⇒ `elevated_vol`).
+
+Formal Lens-5 kernels (`src/core/Asymmetry-Convexity/`) replace heuristics when implemented; until then,
+`RESULTS.md` headline tables label CPU sample rows as **cpu_sample**, not CUDA-measured.
+
+### Environment metadata (CUDA reproduction)
+
+`environment.json` must capture when GPU is available:
+
+- `gpu_model`, `driver_version`, `cuda_version`, `git_commit`, optional `build.json`
+- `measurement_label`: `cpu_sample` (default) or `cuda_measured`
+
+CUDA reproduction runs are **manual** until the next sprint; procedure in [Tech-Debt.md](../Tech-Debt.md) (TD-TW-02).
+
+### GPU vs CPU parity (deferred)
+
+| Check | Tolerance | CI |
+|-------|-----------|-----|
+| `risk.cvar_95` GPU vs CPU on identical replay | ±0.01% relative | Skipped — TD-TW-02 |
+| Posture fields after CUDA kernels | TBD per metric | Manual |
+| SPD / robust covariance | Not in headline | Excluded |
+
+Failure messages must name the metric and artifact path (see Tech-Debt.md).
+
+---

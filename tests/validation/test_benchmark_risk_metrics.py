@@ -22,9 +22,9 @@ from benchmarks.risk_metrics import (  # noqa: E402
     replay_composite_score,
 )
 
-# Technical debt: GPU vs CPU CVaR parity on large samples requires CUDA CI resources.
-# Benchmark path uses host-side historical CVaR only; tolerances documented in docs/VALIDATION.md.
+# Technical debt TD-TW-02: GPU vs CPU CVaR parity — see Tech-Debt.md and docs/VALIDATION.md.
 GPU_CVAR_PARITY_DEFERRED = True
+TD_TW_02_DOC = "Tech-Debt.md"
 
 
 class TestCVaR:
@@ -106,19 +106,36 @@ class TestSampleBundle:
 
     def test_results_schema(self):
         data = json.loads((self.BUNDLE / "results.json").read_text(encoding="utf-8"))
-        assert data["schema_version"] == 1
+        assert data["schema_version"] >= 2
         assert data["lead_time_seconds"] > 0
         assert "warning_state" in data
         assert data["warning_state"]["state"] in {"GREEN", "YELLOW", "RED", "CRITICAL"}
+        contrib = data["warning_state"].get("contributions", {})
+        for name in ("solvency_distance", "max_drawdown", "gross_exposure", "cvar_95"):
+            assert name in contrib, f"missing contribution driver: {name}"
+        assert "posture" in data
+        posture = data["posture"]
+        assert "convexity_score" in posture
+        assert "antifragility_posture" in posture
+        assert "complexity_regime" in posture
+        assert "spd_manifold" in posture.get("excluded_from_headline", [])
+
+    def test_tech_debt_doc_exists(self):
+        doc = _REPO / TD_TW_02_DOC
+        assert doc.is_file(), f"Missing {TD_TW_02_DOC} for TD-TW-02 GPU parity procedure"
 
 
 @pytest.mark.skipif(
     GPU_CVAR_PARITY_DEFERRED,
-    reason="GPU CVaR parity deferred: no CUDA runner in CPU CI (technical debt S3-04).",
+    reason="GPU CVaR parity deferred (TD-TW-02): see Tech-Debt.md manual procedure.",
 )
 class TestGpuParity:
     def test_gpu_cpu_cvar(self):
-        pytest.fail("Implement when CUDA CI resources are available")
+        artifact = self.BUNDLE / "results.json"
+        pytest.fail(
+            f"GPU/CPU parity not implemented: compare risk.cvar_95 in {artifact} "
+            f"per {TD_TW_02_DOC}"
+        )
 
 
 def test_benchmark_runner_smoke():

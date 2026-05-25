@@ -212,6 +212,10 @@ CVaR (at 95% confidence):
 | K runs | 1 |
 | Aggregation policy | `single_run` |
 | Terminal warning state | GREEN (formal S2-02 bands; composite replay score drives alert) |
+| Measurement label | `cpu_sample` |
+| Convexity score | (from bundle `posture.convexity_score` after schema v2 run) |
+| Antifragility posture | (from bundle `posture.antifragility_posture`) |
+| Complexity regime | (from bundle `posture.complexity_regime`) |
 
 **Verified command:**
 
@@ -219,7 +223,43 @@ CVaR (at 95% confidence):
 python benchmarks/run_black_swan_benchmark.py --config benchmarks/configs/black_swan_replay.json
 ```
 
-**Limitations:** CPU-only replay path. GPU-sorted CVaR reproduction and Student-t scenario refresh (`student_t_scenario_refresh.enabled`) remain manual CUDA checks; see [docs/VALIDATION.md](docs/VALIDATION.md) (S3 benchmark path).
+**Limitations:** CPU-only replay path. GPU-sorted CVaR reproduction and Student-t scenario refresh (`student_t_scenario_refresh.enabled`) remain manual CUDA checks; see [docs/VALIDATION.md](docs/VALIDATION.md) (S3 benchmark path) and [Tech-Debt.md](Tech-Debt.md) (TD-TW-02).
+
+---
+
+### Test 5: CUDA Black Swan reproduction (template — not measured)
+
+**Label:** template (execution deferred to next sprint)  
+**Target artifact path:** `benchmarks/results/cuda_black_swan/` (or dated run id)  
+**Config flags:** `cuda_measured: true`, `measurement_label: "cuda_measured"`, distinct `output_dir`
+
+| Field | Value (fill after GPU run) |
+|-------|----------------------------|
+| Measurement | `cuda_measured` |
+| GPU model | — |
+| Driver / CUDA | — |
+| Git commit | — |
+| K runs | — |
+| TailWarp first alert | — |
+| Baseline first alert | — |
+| Lead time Δ | — |
+| Terminal warning state | — |
+| Convexity score | — |
+| Antifragility posture | — |
+| Complexity regime | — |
+
+**Planned command:**
+
+```bash
+python benchmarks/run_black_swan_benchmark.py \
+  --config benchmarks/configs/black_swan_replay_cuda.json
+```
+
+**Limitations vs CPU sample (document after run):**
+
+- GPU-sorted CVaR may differ from host historical quantile on the CPU path.
+- Compare `risk.cvar_95` and `lead_time_seconds` against [sample_black_swan](benchmarks/results/sample_black_swan/) per TD-TW-02 tolerances.
+- SPD manifold and robust covariance remain excluded from headline posture rows.
 
 ---
 

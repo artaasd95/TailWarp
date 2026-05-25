@@ -88,7 +88,7 @@ pip install -r app/requirements-black-swan-dashboard.txt
 streamlit run app/streamlit_black_swan_dashboard.py
 ```
 
-The default bundle is `benchmarks/results/sample_black_swan/`; replay rows live under `data/input/sample_replays/`. No GPU is required for this path.
+The sidebar **Run** list discovers every `benchmarks/results/<run_id>/` folder with `results.json` (not only the sample bundle). Use **Custom bundle path** for other directories. See [dashboard/README.md](dashboard/README.md). Replay rows live under `data/input/sample_replays/`. No GPU is required for this path.
 
 ### Black Swan replay benchmark (CPU-safe)
 
