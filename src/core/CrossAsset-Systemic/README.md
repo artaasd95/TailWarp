@@ -31,5 +31,5 @@ For conceptual details and risk framework overview, see:
 ## Related Components
 
 - [SPD Manifold Operations](../manifolds/spd_operations.cu) – Riemannian geometry for covariance
-- [Robust Covariance](../algorithms/robust_covariance.cpp) – Tail-resistant covariance estimation
+- [Sample covariance + ridge](../algorithms/sample_covariance_with_ridge.cpp) – Host partial; Tyler M-estimator `[PLANNED]`
 - [Research Notes](../../docs/research_notes/) – Systemic risk and network contagion literature

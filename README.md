@@ -22,16 +22,16 @@ See [RESULTS.md](RESULTS.md) for the full claim-vs-measured separation and S2-01
 - ✅ Warning state framework (green/yellow/red/critical with deterministic thresholds)
 
 **Planned & Partial** (Phase 2–3, explicitly excluded from S2-01 headline; see [docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md](docs/project-plan-docs/07-RISK-SIMPLE-PLAN.md))
-- ⚠️ SPD manifold covariance (stubs exist, host pipeline incomplete)
-- ⚠️ Robust covariance via Tyler's M-estimator (manifold ops needed)
+- ⚠️ **[PLANNED]** SPD manifold (`spd_log` / `spd_distance` — GPU placeholders only)
+- ⚠️ **partial** Host `sample_covariance_with_ridge` only (not Tyler's M-estimator)
 - ⚠️ α-stable and multivariate samplers; EVT / POT tail validation
 - ⚠️ Riemannian optimization (geodesic distance, trust-region hedging)
 
 ## Quick Start
 
 ```bash
-# Configure and build (tests + examples)
-cmake -B build -DBUILD_TESTS=ON
+# Configure and build (tests + examples + CUDA microbenches)
+cmake -B build -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON
 cmake --build build
 
 # Tests
@@ -101,8 +101,24 @@ python benchmarks/run_black_swan_benchmark.py --config benchmarks/configs/black_
 
 Outputs land in `benchmarks/results/sample_black_swan/` (`results.json`, `summary.md`, `tailwarp_vs_variance.csv`, plots, and `environment.json`). See [benchmarks/README.md](benchmarks/README.md) for config schema.
 
+## Known limitations
+
+Every public metric is tagged in [docs/VALIDATION.md](docs/VALIDATION.md) as `verified`, `partial`, or `placeholder` / `[PLANNED]`.
+
+- **Univariate only** for headline claims — multivariate tails and correlation are not measured.
+- **CVaR** uses host historical quantile in `risk_metrics.cpp`, not a GPU sort kernel (`partial`).
+- **Black Swan replay** defaults to CPU orchestration (`cpu_sample`); CUDA-measured rows require a native build and `cuda_measured` config — see [docs/EXECUTION_MANIFEST.md](docs/EXECUTION_MANIFEST.md).
+- **SPD manifold** and **Tyler robust covariance** are `[PLANNED]` — do not cite in headlines.
+- **Drawdown / ruin / exposure CUDA kernels** exist but lack full golden GPU-vs-reference coverage in CI (CPU tests + manual GPU parity per [Tech-Debt.md](Tech-Debt.md) TD-TW-02).
+- **Posture metrics** in replay bundles are CPU heuristics until Lens-5 kernels ship (`cpu_replay_heuristic`).
+- **Throughput table** in `RESULTS.md` is representative, not locked to CI hardware — reproduce via `python benchmarks/run_benchmarks.py` after S7.
+
+Architecture: Python orchestrates; numerics live in CUDA/C++ — [docs/ARCHITECTURE_BOUNDARY.md](docs/ARCHITECTURE_BOUNDARY.md).
+
 ## Documentation
 
+- **Architecture boundary:** [docs/ARCHITECTURE_BOUNDARY.md](docs/ARCHITECTURE_BOUNDARY.md) — CUDA-first; Python orchestration only
+- **S7 run matrix (planned):** [docs/EXECUTION_MANIFEST.md](docs/EXECUTION_MANIFEST.md)
 - **Results & Claims:** [RESULTS.md](RESULTS.md) — Separates target Black Swan Defense claims from measured results (S2-01)
 - **Research Plan**: [docs/ideas-plan.md](docs/ideas-plan.md)
 - **Workflow**: `docs/project-plan-docs/QUICK-REFERENCE.md`

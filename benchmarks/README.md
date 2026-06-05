@@ -1,14 +1,48 @@
 # Benchmarks
 
-Performance evaluation suite for CUDA kernels and Black Swan replay defense benchmarks.
+Performance evaluation and Black Swan replay artifacts. **CUDA-native microbenches** live in CMake targets; **Python** loads configs and writes bundles only ([docs/ARCHITECTURE_BOUNDARY.md](../docs/ARCHITECTURE_BOUNDARY.md)).
 
 ## Structure
 
-- `configs/` — Benchmark configurations (kernel suite, Black Swan replay)
-- `baselines/` — Reference performance numbers
-- `results/` — Benchmark outputs (timestamped bundles)
-- `run_black_swan_benchmark.py` — CPU-safe Black Swan replay runner (S3-01)
-- `risk_metrics.py` — Host-side warning state and CVaR helpers for the replay path
+| Path | Purpose |
+|------|---------|
+| `configs/` | Replay and suite JSON |
+| `baselines/` | Golden JSON for `scripts/check_regression.py` |
+| `results/` | Generated run bundles (`<run_id>/results.json`) |
+| `run_benchmarks.py` | Canonical runner (SP-BENCH-01) — see [EXECUTION_MANIFEST](../docs/EXECUTION_MANIFEST.md) |
+| `run_black_swan_benchmark.py` | CPU-safe Black Swan replay (S3) |
+| `bench_student_t`, `bench_gaussian` | C++ sources; built as `build/bench_*` |
+
+## Build prerequisites (CUDA path)
+
+```bash
+cmake -B build -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON
+cmake --build build
+```
+
+Targets:
+
+- `build/bench_student_t` — Student-t sampling throughput (`--json` for machine-readable line)
+- `build/bench_gaussian` — Gaussian sampling throughput
+- `build/examples/experiment_run` — experiment artifact folder
+
+## Canonical runner
+
+```bash
+# CPU smoke: ctest + optional microbench + Black Swan replay
+python benchmarks/run_benchmarks.py --profile cpu_smoke --run-id my_smoke
+
+# CUDA full matrix (S7 — requires GPU build)
+python benchmarks/run_benchmarks.py --profile cuda_full --run-id my_cuda --k 5 --warmup 3
+```
+
+Output: `benchmarks/results/<run_id>/results.json` (schema in [results/README.md](results/README.md)).
+
+Regression check:
+
+```bash
+python scripts/check_regression.py --results benchmarks/results/<run_id>/results.json
+```
 
 ## Black Swan replay benchmark (CPU-safe)
 
@@ -25,16 +59,14 @@ Config schema (`configs/black_swan_replay.json`):
 | `baseline` | Variance EWMA type, λ, alert threshold |
 | `student_t_scenario_refresh` | Optional Monte Carlo refresh (disabled in sample) |
 
-Run from repository root:
-
 ```bash
 pip install -r app/requirements-black-swan-dashboard.txt
 python benchmarks/run_black_swan_benchmark.py --config benchmarks/configs/black_swan_replay.json
 ```
 
-Writes `results.json` (schema v2: `posture`, `limitations`, `measurement_label`), `summary.md`, `tailwarp_vs_variance.csv`, `environment.json`, and plots under the configured `output_dir`.
+Writes `results.json` (schema v2: `posture`, `limitations`, `measurement_label`), `summary.md`, `tailwarp_vs_variance.csv`, `environment.json`, and plots.
 
-Lead time convention: `baseline_first_alert_ts − tailwarp_first_alert_ts` (positive ⇒ TailWarp earlier).
+**GPU measured run:** build native targets first, then use `configs/black_swan_replay_cuda.json` with `cuda_measured: true`. Record rows in [RESULTS.md](../RESULTS.md). Parity: [Tech-Debt.md](../Tech-Debt.md) (TD-TW-02).
 
 ### Dashboard
 
@@ -42,32 +74,17 @@ Lead time convention: `baseline_first_alert_ts − tailwarp_first_alert_ts` (pos
 streamlit run app/streamlit_black_swan_dashboard.py
 ```
 
-Discovers all runs under `results/`; see [dashboard/README.md](../dashboard/README.md).
+## Performance targets (reference — RTX 3060 class)
 
-### CUDA reproduction (next sprint)
+| Kernel | Target throughput | Notes |
+|--------|-------------------|-------|
+| Student-t sampler | > 200M samples/sec | `bench_student_t` |
+| Gaussian sampler | Similar order | `bench_gaussian` |
+| Host CVaR (10M) | < 20 ms | Not GPU-sorted yet |
 
-Set `cuda_measured: true` and a distinct `output_dir` in config (template: `configs/black_swan_replay_cuda.json`). Record a **CUDA-measured** row in [RESULTS.md](../RESULTS.md). Manual parity: [Tech-Debt.md](../Tech-Debt.md) (TD-TW-02).
-
-## Kernel performance suite
-
-```bash
-# Run full kernel benchmark suite (GPU; script planned)
-./scripts/run_benchmarks.sh
-
-# Run specific kernel benchmark
-./build/benchmark_student_t
-```
-
-## Performance Targets (RTX 3060)
-
-| Kernel | Target Throughput | Memory Budget |
-|--------|------------------|---------------|
-| Student-t sampler | > 200M samples/sec | < 1 GB |
-| CVaR (10M samples) | < 10 ms | - |
-| SPD exp/log | < 5 ms (batch of 1000) | - |
-
-Regression threshold: ±5% acceptable, >10% requires investigation.
+Regression: ±20% vs `benchmarks/baselines/` default (`scripts/check_regression.py --threshold 0.20`).
 
 ## CI
 
-CPU-safe Black Swan smoke: `.github/workflows/black_swan_smoke.yml` (no GPU). CUDA kernel benchmarks remain manual per [docs/project-plan-docs/CI-PLAN.md](../docs/project-plan-docs/CI-PLAN.md).
+- **CPU:** `.github/workflows/black_swan_smoke.yml` — replay + pytest validation
+- **GPU benchmarks:** manual or `workflow_dispatch` per [docs/project-plan-docs/CI-PLAN.md](../docs/project-plan-docs/CI-PLAN.md) and [docs/EXECUTION_MANIFEST.md](../docs/EXECUTION_MANIFEST.md)

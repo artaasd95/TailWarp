@@ -1,19 +1,16 @@
-// Robust covariance: sample covariance with ridge for numerical stability.
+// Sample covariance with ridge for numerical stability (host-only).
+// Tyler's M-estimator / IRLS: [PLANNED] — see docs/VALIDATION.md.
 
-#include "robust_covariance.h"
+#include "sample_covariance_with_ridge.h"
 
 #include <vector>
 
 namespace tailwarp {
 
-std::vector<float> estimate_robust_covariance(
+std::vector<float> sample_covariance_with_ridge(
     const std::vector<std::vector<float>>& returns,
-    int max_iter,
-    float tol
+    float ridge
 ) {
-    (void)max_iter;
-    (void)tol;
-
     if (returns.empty() || returns[0].empty()) {
         return {};
     }
@@ -24,7 +21,8 @@ std::vector<float> estimate_robust_covariance(
 
     for (int t = 0; t < n_samples; ++t) {
         for (int j = 0; j < n_assets; ++j) {
-            mean[static_cast<size_t>(j)] += static_cast<double>(returns[static_cast<size_t>(t)][static_cast<size_t>(j)]);
+            mean[static_cast<size_t>(j)] +=
+                static_cast<double>(returns[static_cast<size_t>(t)][static_cast<size_t>(j)]);
         }
     }
     for (double& m : mean) {
@@ -56,7 +54,6 @@ std::vector<float> estimate_robust_covariance(
         }
     }
 
-    const float ridge = 1e-4f;
     for (int i = 0; i < n_assets; ++i) {
         cov[static_cast<size_t>(i * n_assets + i)] += ridge;
     }

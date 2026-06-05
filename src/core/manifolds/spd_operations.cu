@@ -1,5 +1,6 @@
-// SPD (Symmetric Positive Definite) manifold operations (GPU)
-// Affine-invariant metric for covariance matrices
+// [PLANNED] SPD manifold operations — placeholders only (S6 / SP-MATH-03).
+// spd_log_kernel and spd_distance_kernel are not production implementations.
+// See docs/VALIDATION.md and src/wrappers/manifolds.h.
 
 #include <cuda_runtime.h>
 

@@ -1,7 +1,7 @@
 // Level 4 validation: End-to-end pipeline
 
 #include "../../src/algorithms/position_sizing.h"
-#include "../../src/algorithms/robust_covariance.h"
+#include "../../src/algorithms/sample_covariance_with_ridge.h"
 #include <gtest/gtest.h>
 
 TEST(EndToEnd, CVaRPositionSizing) {
@@ -20,14 +20,14 @@ TEST(EndToEnd, CVaRPositionSizing) {
     // TODO: Add more comprehensive checks
 }
 
-TEST(EndToEnd, RobustCovarianceEstimation) {
+TEST(EndToEnd, SampleCovarianceWithRidge) {
     std::vector<std::vector<float>> ret;
     for (int t = 0; t < 100; ++t) {
         float a = static_cast<float>(t) * 0.01f;
         float b = static_cast<float>(t) * 0.02f + 0.1f;
         ret.push_back({a, b});
     }
-    std::vector<float> cov = tailwarp::estimate_robust_covariance(ret, 10, 1e-6f);
+    std::vector<float> cov = tailwarp::sample_covariance_with_ridge(ret);
     ASSERT_EQ(cov.size(), 4u);
     EXPECT_GT(cov[0], 0.0f);
     EXPECT_GT(cov[3], 0.0f);

@@ -1,5 +1,7 @@
 # Contributing to TailWarp
 
+**Architecture boundary:** Metrics live in CUDA/C++; Python is orchestration only. See [docs/ARCHITECTURE_BOUNDARY.md](docs/ARCHITECTURE_BOUNDARY.md).
+
 ## Development Workflow
 
 1. **Research → Implement → Validate → Benchmark → Record**

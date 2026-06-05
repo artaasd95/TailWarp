@@ -40,6 +40,9 @@ if(BUILD_TESTS)
     if(GTest_FOUND)
         file(GLOB_RECURSE TEST_SOURCES tests/**/*.cpp)
         add_executable(tailwarp_tests ${TEST_SOURCES})
+        target_sources(tailwarp_tests PRIVATE
+            ${CMAKE_SOURCE_DIR}/src/reference/student_t_cpu.cpp
+        )
         target_link_libraries(tailwarp_tests 
             tailwarp 
             tailwarp_kernels
@@ -49,6 +52,22 @@ if(BUILD_TESTS)
         enable_testing()
         add_test(NAME TailWarpTests COMMAND tailwarp_tests)
     endif()
+endif()
+
+# CUDA microbenchmark executables (native path; see benchmarks/README.md)
+option(BUILD_BENCHMARKS "Build bench_student_t and bench_gaussian" ON)
+if(BUILD_BENCHMARKS)
+    add_executable(bench_student_t benchmarks/bench_student_t.cpp)
+    target_include_directories(bench_student_t PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/wrappers
+        ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(bench_student_t tailwarp tailwarp_kernels)
+
+    add_executable(bench_gaussian benchmarks/bench_gaussian.cpp)
+    target_include_directories(bench_gaussian PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/wrappers
+        ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(bench_gaussian tailwarp tailwarp_kernels)
 endif()
 
 # Examples

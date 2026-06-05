@@ -31,5 +31,5 @@ For conceptual details and risk framework overview, see:
 ## Related Components
 
 - [Algorithms](../algorithms/) – Position sizing and factor normalization
-- [Robust Covariance](../algorithms/robust_covariance.cpp) – Factor structure estimation
+- [Sample covariance + ridge](../algorithms/sample_covariance_with_ridge.cpp) – Factor structure (partial)
 - [Manifolds](../manifolds/) – SPD geometry for correlation analysis

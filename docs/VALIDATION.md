@@ -2,6 +2,10 @@
 
 TailWarp uses **layered validation** before results are trusted. Aligns with [project-plan-docs/QUICK-REFERENCE.md](project-plan-docs/QUICK-REFERENCE.md).
 
+**CUDA-first boundary:** [ARCHITECTURE_BOUNDARY.md](ARCHITECTURE_BOUNDARY.md) — headline metrics must originate in `src/core` / `src/wrappers`, not Python reimplementations.
+
+**Complete-run matrix (S7, planned):** [EXECUTION_MANIFEST.md](EXECUTION_MANIFEST.md).
+
 ## Levels
 
 | Level | What | When |
@@ -66,8 +70,9 @@ The Black Swan Defense framework (S2-01 baseline) consists of **Phase 1 — Surv
 
 | Feature | Status | Why Excluded | Target Phase |
 |---------|--------|-------------|--------------|
-| **SPD Manifold Covariance** | Stubs only (GPU placeholder) | Host `SPDManifold` pipeline incomplete; no tensor ops | Phase 2–3 |
-| **Robust Covariance** | Incomplete (Tyler M-estimator stub) | Depends on SPD manifold; not production-ready | Phase 2–3 |
+| **SPD Manifold Covariance** | `[PLANNED]` placeholder | `spd_log` / `spd_distance` kernels are stubs; host `SPDManifold` not wired | Phase 2–3 |
+| **Sample covariance + ridge** | `partial` — host only | Renamed from misleading `robust_covariance`; not Tyler M-estimator | Phase 2–3 for true robust |
+| **Tyler robust covariance** | `[PLANNED]` | Not implemented | Phase 2–3 |
 | **Multivariate Sampling** | Stubs only | Only univariate Student-t works; correlation structure absent | Phase 2 |
 | **EVT / POT Diagnostics** | Partial (κ metric not computed) | GPD fitting incomplete; tail index estimation missing | Phase 2 |
 | **Riemannian Optimization** | Planned only | No geodesic distance or trust-region hedging code | Phase 3 |
@@ -360,5 +365,53 @@ CUDA reproduction runs are **manual** until the next sprint; procedure in [Tech-
 | SPD / robust covariance | Not in headline | Excluded |
 
 Failure messages must name the metric and artifact path (see Tech-Debt.md).
+
+---
+
+## Correctness registry (SP-MATH-01 / SP-MATH-05)
+
+**Status legend:** `verified` = levels 0–2+ with tests; `partial` = implemented but simplified or host-only; `placeholder` / `[PLANNED]` = not for headlines.
+
+| Metric / module | Correctness | Code | Tests | Updated |
+|-----------------|-------------|------|-------|---------|
+| Student-t sampling (GPU) | `verified` | `src/core/distributions/student_t.cu` | `tests/unit/test_student_t.cpp`, `tests/validation/test_kernel_parity.cpp` | 2026-06-05 |
+| Gaussian sampling (GPU) | `verified` | `src/core/distributions/gaussian.cu` | `tests/unit/test_student_t.cpp` (finite) | 2026-06-05 |
+| VaR / CVaR (host) | `verified` | `src/wrappers/risk_metrics.cpp` | `tests/unit/test_cvar.cpp`, `test_var_cvar_invariants.cpp`, parity golden | 2026-06-05 |
+| Warning state | `verified` | `src/wrappers/risk_metrics.cpp` | `tests/unit/test_warning_state.cpp` | 2026-06-05 |
+| Risk metrics summary | `verified` | `src/wrappers/risk_metrics.cpp` | `test_var_cvar_invariants.cpp` | 2026-06-05 |
+| Solvency distance (CUDA) | `partial` | `src/core/Structural-Ruin/solvency_distance.cu` | E2E / replay only | 2026-06-05 |
+| Drawdown / ulcer / recovery (CUDA) | `partial` | `src/core/Drawdown-Pain/*.cu` | Limited direct kernel tests | 2026-06-05 |
+| Exposure / leverage (CUDA) | `partial` | `src/core/Exposure-Leverage/exposure_metrics.cu` | Bounds-level only | 2026-06-05 |
+| Structural ruin (RoR, barrier) | `partial` | `src/core/Structural-Ruin/*.cu` | Integration-light | 2026-06-05 |
+| Position sizing | `partial` | `src/algorithms/position_sizing.cpp` | `tests/integration/test_end_to_end.cpp` | 2026-06-05 |
+| Sample covariance + ridge | `partial` | `src/algorithms/sample_covariance_with_ridge.cpp` | `tests/unit/test_sample_covariance_with_ridge.cpp` | 2026-06-05 |
+| SPD exp / log / distance | `[PLANNED]` | `src/core/manifolds/spd_operations.cu` | None (excluded) | 2026-06-05 |
+| Tyler robust covariance | `[PLANNED]` | — | — | 2026-06-05 |
+| EVT / POT tail index | `[PLANNED]` | — | — | 2026-06-05 |
+| Multivariate Student-t | `[PLANNED]` | stubs in distributions | — | 2026-06-05 |
+| Black Swan replay (Python path) | `partial` | `benchmarks/run_black_swan_benchmark.py` | `tests/validation/test_benchmark_risk_metrics.py` | 2026-06-05 |
+| Posture (convexity / antifragility) | `partial` | `benchmarks/posture_metrics.py` | `test_posture_metrics.py`; heuristic | 2026-06-05 |
+| GPU-sorted CVaR | `[PLANNED]` | — | TD-TW-02 | 2026-06-05 |
+
+Use this table when editing [RESULTS.md](../RESULTS.md) rows: each headline metric must cite a `verified` or explicitly labeled `partial` row.
+
+---
+
+## Parity tolerances and NaN/Inf policy (SP-MATH-04)
+
+| Check | Policy | Tolerance | CI |
+|-------|--------|-----------|-----|
+| All GPU samples | No NaN/Inf | hard assert | CPU + GPU (skip GPU if no device) |
+| Student-t moments (GPU) | vs theory ν/(ν−2) | mean abs ≤ 0.04; var rel ≤ 12% | `test_kernel_parity.cpp` |
+| Student-t GPU vs CPU reference | Different RNG | **Not** bitwise; CPU ref tested for finite only | Manual / optional |
+| CVaR golden vector | host exact | abs ≤ 1e-5 | Always |
+| VaR ≤ CVaR | host invariant | 1e-5 | Always |
+| Warning state | deterministic | exact | `test_warning_state.cpp` |
+| Replay CVaR vs C++ | bands | exact thresholds | `test_benchmark_risk_metrics.py` |
+| GPU vs CPU 10M CVaR | deferred | ±0.01% rel | TD-TW-02; manual S7 |
+
+Constants live in `tests/validation/test_kernel_parity.cpp`. Update this section when tolerances change.
+
+**Manual GPU job:** run `ctest --test-dir build -R KernelParity` or full `tailwarp_tests` on a machine with CUDA; document driver/CUDA in `environment.json`.
 
 ---

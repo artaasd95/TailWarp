@@ -4,10 +4,11 @@
 
 namespace tailwarp {
 
-std::vector<float> estimate_robust_covariance(
+// Sample covariance with diagonal ridge (host-only). NOT Tyler's M-estimator.
+// Status: partial — see docs/VALIDATION.md.
+std::vector<float> sample_covariance_with_ridge(
     const std::vector<std::vector<float>>& returns,
-    int max_iter = 100,
-    float tol = 1e-6f
+    float ridge = 1e-4f
 );
 
 std::vector<float> barycenter_covariances(
