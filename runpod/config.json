@@ -1,0 +1,8 @@
+{
+  "suite": "runpod_gpu_smoke",
+  "kernels": ["gaussian", "student_t"],
+  "dimensions": [64, 128, 256],
+  "samples": 10000,
+  "repeats": 5,
+  "output_dir": "benchmarks/results/runpod"
+}
