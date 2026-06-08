@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tailwarp"
+version = "1.0.0"
+description = "Tail-aware risk metrics with CPU fallback and optional native bindings"
+readme = "python/README.md"
+requires-python = ">=3.9"
+license = { text = "See LICENSE in repository root" }
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.optional-dependencies]
+cuda = []
+dashboard = [
+    "pandas>=1.3",
+    "matplotlib>=3.5",
+    "plotly>=5.0",
+    "streamlit>=1.20",
+]
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python", "tests/validation"]
+pythonpath = ["python", "."]

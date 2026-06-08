@@ -51,6 +51,21 @@ if(BUILD_TESTS)
         )
         enable_testing()
         add_test(NAME TailWarpTests COMMAND tailwarp_tests)
+        add_test(NAME gpu_smoke COMMAND tailwarp_tests --gtest_filter=GpuSmoke.*)
+        set_tests_properties(gpu_smoke PROPERTIES LABELS "gpu")
+    endif()
+endif()
+
+# Optional pybind11 extension (host risk_metrics only; BUILD_PYTHON=ON)
+option(BUILD_PYTHON "Build pybind11 tailwarp._native extension" OFF)
+if(BUILD_PYTHON)
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    find_package(pybind11 CONFIG QUIET)
+    if(pybind11_FOUND)
+        pybind11_add_module(_native python/bindings/risk_metrics_bindings.cpp)
+        target_link_libraries(_native PRIVATE tailwarp)
+        target_include_directories(_native PRIVATE ${CMAKE_SOURCE_DIR}/src)
+        install(TARGETS _native LIBRARY DESTINATION tailwarp)
     endif()
 endif()
 
@@ -59,12 +74,14 @@ option(BUILD_BENCHMARKS "Build bench_student_t and bench_gaussian" ON)
 if(BUILD_BENCHMARKS)
     add_executable(bench_student_t benchmarks/bench_student_t.cpp)
     target_include_directories(bench_student_t PRIVATE
+        ${CMAKE_SOURCE_DIR}/benchmarks
         ${CMAKE_SOURCE_DIR}/src/wrappers
         ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(bench_student_t tailwarp tailwarp_kernels)
 
     add_executable(bench_gaussian benchmarks/bench_gaussian.cpp)
     target_include_directories(bench_gaussian PRIVATE
+        ${CMAKE_SOURCE_DIR}/benchmarks
         ${CMAKE_SOURCE_DIR}/src/wrappers
         ${CMAKE_SOURCE_DIR}/src)
     target_link_libraries(bench_gaussian tailwarp tailwarp_kernels)

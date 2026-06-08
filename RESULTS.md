@@ -1,5 +1,26 @@
 # TailWarp Black Swan Defense: Results and Scope
 
+## Methodology (v2 — SP-BENCH-03)
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Warm-up runs | 3 | Excluded from timing statistics |
+| K measured runs | 5 | Median reported for throughput rows |
+| Seed policy | Fixed per binary (`bench_*` default seeds) | Document overrides in `environment.json` |
+| Hardware class `cpu_sample` | Host quantile / Python replay | No GPU timing |
+| Hardware class `cuda_measured` | Native CUDA binaries | Requires GPU build |
+| Regression gate | ±20% vs `benchmarks/baselines/*.json` | `scripts/check_regression.py` (warn on CPU CI) |
+| Artifact layout | `benchmarks/results/<run_id>/results.json` | Schema v2 — see [benchmarks/results/README.md](benchmarks/results/README.md) |
+
+**Run ID placeholders (S7 execution sprint):**
+
+| Manifest ID | Target run_id placeholder | RESULTS section |
+|-------------|---------------------------|-----------------|
+| T03 / T10 | `benchmarks/results/s7_cuda_<date>/` | Throughput / Student-t |
+| T08 | `benchmarks/results/cuda_black_swan/` | Test 5 |
+
+---
+
 ## Executive Summary
 
 **Sprint S2 Target (2026-05-15):** Calibrate Black Swan Defense framework with clearly separated *target claims* from *measured results*.
@@ -130,7 +151,9 @@ CVaR (at 95% confidence):
 
 ## Experimental Results: Sample Metrics
 
-### Test 1: Gaussian Return Distribution (Baseline)
+### Test 1: Gaussian Return Distribution (Baseline) — [pending execution sprint]
+
+**Artifact:** `benchmarks/results/<run_id>/` (not yet measured on CI hardware)
 
 **Configuration:** `configs/gaussian_varcvar.json`
 ```json
@@ -156,7 +179,9 @@ CVaR (at 95% confidence):
 
 ---
 
-### Test 2: Student-t Return Distribution (Heavy Tails)
+### Test 2: Student-t Return Distribution (Heavy Tails) — [pending execution sprint]
+
+**Artifact:** `benchmarks/results/<run_id>/` (not yet measured on CI hardware)
 
 **Configuration:** `configs/experiment_student_t_cvar.json`
 ```json
@@ -181,7 +206,9 @@ CVaR (at 95% confidence):
 
 ---
 
-### Test 3: Warning State Escalation
+### Test 3: Warning State Escalation — [pending execution sprint]
+
+**Artifact:** derived from replay bundles (GPU path deferred)
 
 **Scenario:** Portfolio with rising leverage and drawdown.
 
@@ -263,10 +290,21 @@ python benchmarks/run_black_swan_benchmark.py \
 
 ---
 
-### Throughput Metrics
+### Throughput Metrics — [pending execution sprint]
+
+**Target artifact:** `benchmarks/results/s7_cuda_<date>/results.json` (manifest T03/T04/T10)
 
 | Operation | Input Size | GPU Time | GPU Throughput | CPU Time | Speedup |
 |-----------|-----------|----------|----------------|----------|---------|
+| Gaussian Sampling | 10M | — | — | — | — |
+| Student-t Sampling | 10M | — | — | — | — |
+| VaR Computation | 10M | — | — | — | — |
+| CVaR + Stats | 10M | — | — | — | — |
+
+Representative historical numbers (RTX 3060 class, pre-S7 lock) retained for planning only:
+
+| Operation | Input Size | GPU Time (ref) | GPU Throughput (ref) | CPU Time (ref) | Speedup (ref) |
+|-----------|-----------|----------------|----------------------|----------------|---------------|
 | Gaussian Sampling | 10M | 2.3 ms | 4.3B samples/sec | 145 ms | 63x |
 | Student-t Sampling | 10M | 3.1 ms | 3.2B samples/sec | 210 ms | 68x |
 | VaR Computation | 10M | 0.8 ms | — | 12 ms | 15x |

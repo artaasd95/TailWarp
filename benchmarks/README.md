@@ -29,8 +29,11 @@ Targets:
 ## Canonical runner
 
 ```bash
-# CPU smoke: ctest + optional microbench + Black Swan replay
-python benchmarks/run_benchmarks.py --profile cpu_smoke --run-id my_smoke
+# CPU smoke: ctest + optional microbench + Black Swan replay (K=5, warmup=3 per manifest)
+python benchmarks/run_benchmarks.py --profile cpu_smoke --run-id my_smoke --k 5 --warmup 3
+
+# Schema probe without native binaries
+python benchmarks/run_benchmarks.py --dry-run --run-id schema_probe
 
 # CUDA full matrix (S7 — requires GPU build)
 python benchmarks/run_benchmarks.py --profile cuda_full --run-id my_cuda --k 5 --warmup 3
@@ -86,5 +89,6 @@ Regression: ±20% vs `benchmarks/baselines/` default (`scripts/check_regression.
 
 ## CI
 
-- **CPU:** `.github/workflows/black_swan_smoke.yml` — replay + pytest validation
-- **GPU benchmarks:** manual or `workflow_dispatch` per [docs/project-plan-docs/CI-PLAN.md](../docs/project-plan-docs/CI-PLAN.md) and [docs/EXECUTION_MANIFEST.md](../docs/EXECUTION_MANIFEST.md)
+- **CPU:** `.github/workflows/ci.yml` — replay + pytest + regression warn-only
+- **GPU smoke:** `.github/workflows/gpu-smoke.yml` (`workflow_dispatch`) — `ctest -R gpu_smoke`, optional parity
+- **Host GTest (local):** `scripts/ci-host-tests.sh` — see Tech-Debt.md TD-TW-04

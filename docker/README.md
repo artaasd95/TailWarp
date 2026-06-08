@@ -4,17 +4,23 @@
 
 This directory contains Docker configurations that separate **CPU-only demo** from **GPU-accelerated CUDA benchmarks**.
 
-- **Dockerfile.demo**: Lightweight CPU image for development, documentation, Streamlit dashboard
-- **Dockerfile.cuda**: GPU image for high-performance benchmarking and validation
+- **Dockerfile.cpu**: Slim CPU image (`pip install tailwarp`, &lt;300MB target)
+- **Dockerfile.demo**: Dashboard image (Streamlit; heavier than cpu)
+- **Dockerfile.cuda**: Multi-stage GPU runtime for benchmarks and examples
 - **docker-compose.example.yml**: Template showing how to orchestrate both services (example only, not used in CI)
 
 ---
 
 ## Quick Start
 
-### CPU Demo (No GPU Required)
+### CPU package smoke (No GPU Required)
 
-Build and run the CPU-only demo:
+```bash
+docker build -f docker/Dockerfile.cpu -t tailwarp:cpu .
+docker run --rm tailwarp:cpu
+```
+
+### CPU Demo dashboard
 
 ```bash
 docker build -f docker/Dockerfile.demo -t tailwarp:demo .

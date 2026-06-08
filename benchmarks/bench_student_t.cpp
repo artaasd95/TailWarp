@@ -1,11 +1,13 @@
 // CUDA microbench: Student-t sampling throughput (JSON line to stdout with --json).
 
+#include "bench_timing_stats.h"
 #include "distributions.h"
 
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <vector>
 
 int main(int argc, char** argv) {
     int n_samples = 1'000'000;
@@ -47,25 +49,36 @@ int main(int argc, char** argv) {
         (void)run_once();
     }
 
-    double sum_ms = 0.0;
+    std::vector<double> times;
+    times.reserve(static_cast<size_t>(k_runs));
     for (int k = 0; k < k_runs; ++k) {
-        sum_ms += run_once();
+        times.push_back(run_once());
     }
-    const double mean_ms = sum_ms / static_cast<double>(k_runs);
-    const double throughput = static_cast<double>(n_samples) / (mean_ms / 1000.0);
+
+    double mean_ms = 0.0;
+    double median_ms = 0.0;
+    double std_ms = 0.0;
+    double p95_ms = 0.0;
+    bench_timing_stats(times, mean_ms, median_ms, std_ms, p95_ms);
+    const double throughput =
+        static_cast<double>(n_samples) / (median_ms / 1000.0);
 
     if (json_out) {
         std::cout << "{"
                   << "\"name\":\"student_t_sample\","
+                  << "\"status\":\"ok\","
                   << "\"n_samples\":" << n_samples << ","
                   << "\"nu\":" << nu << ","
                   << "\"mean_ms\":" << mean_ms << ","
+                  << "\"median_ms\":" << median_ms << ","
+                  << "\"std_ms\":" << std_ms << ","
+                  << "\"p95_ms\":" << p95_ms << ","
                   << "\"samples_per_sec\":" << throughput << ","
                   << "\"k_runs\":" << k_runs << ","
                   << "\"warmup_runs\":" << warmup
                   << "}\n";
     } else {
-        std::cout << "student_t n=" << n_samples << " mean_ms=" << mean_ms
+        std::cout << "student_t n=" << n_samples << " median_ms=" << median_ms
                   << " samples/sec=" << throughput << "\n";
     }
     return 0;

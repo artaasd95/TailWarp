@@ -1,74 +1,53 @@
-# TailWarp CUDA Benchmark Dockerfile
-#
-# PURPOSE: GPU-accelerated image for high-performance benchmarking and validation.
-# TARGET ENVIRONMENT: Production benchmarks, CI GPU checks, performance regression testing
-# GPU REQUIRED: NVIDIA GPU with compute capability 8.6+ (RTX 30-series or newer)
+# TailWarp CUDA multi-stage image (SP-DEPLOY-01)
 #
 # BUILD: docker build -f docker/Dockerfile.cuda -t tailwarp:cuda --build-arg CUDA_VERSION=12.2 .
 # RUN:   docker run --rm --gpus all tailwarp:cuda ./build/examples/experiment_run configs/experiment_student_t_cvar.json
-#
-# Notes:
-# - This image is large (~8-10 GB) due to CUDA toolkit
-# - For CI, build on a machine with GPU access; push to private registry
-# - For benchmarking, use `--gpus all` to expose all GPUs to container
-#
 
 ARG CUDA_VERSION=12.2
-ARG CUDNN_VERSION=8.7.0
-FROM nvidia/cuda:${CUDA_VERSION}.1-devel-ubuntu22.04
 
-LABEL maintainer="TailWarp Contributors"
-LABEL description="TailWarp CUDA GPU-accelerated benchmark image"
+# --- Build stage ---
+FROM nvidia/cuda:${CUDA_VERSION}.1-devel-ubuntu22.04 AS builder
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     git \
-    wget \
-    ca-certificates \
-    python3 \
-    python3-pip \
-    python3-dev \
+    libgtest-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies for benchmarking and analysis
-RUN pip install --no-cache-dir \
-    numpy \
-    pandas \
-    matplotlib \
-    plotly \
-    pyyaml \
-    pytest \
-    json5
-
 WORKDIR /app
-
-# Copy repository
 COPY . /app
 
-# Build with CUDA support
-RUN mkdir -p /app/build && \
-    cmake -B /app/build \
-           -DBUILD_TESTS=ON \
-           -DCMAKE_BUILD_TYPE=Release \
-           -DCMAKE_CUDA_ARCHITECTURES="75;80;86;90" \
-    && cmake --build /app/build -j$(nproc)
+RUN cmake -B build \
+        -DBUILD_TESTS=ON \
+        -DBUILD_BENCHMARKS=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CUDA_ARCHITECTURES="75;80;86;90" \
+    && cmake --build build -j"$(nproc)"
 
-# Verify CUDA compilation (run a simple test)
-RUN cd /app/build && ctest --test-dir . --output-on-failure -L unit -E "test_" --timeout 30 || true
+# --- Runtime stage ---
+FROM nvidia/cuda:${CUDA_VERSION}.1-runtime-ubuntu22.04 AS runtime
 
-# Set default environment
+LABEL maintainer="TailWarp Contributors"
+LABEL description="TailWarp CUDA runtime (binaries + libs)"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=builder /app/build/examples /app/build/examples
+COPY --from=builder /app/build/bench_student_t /app/build/bench_student_t
+COPY --from=builder /app/build/bench_gaussian /app/build/bench_gaussian
+COPY --from=builder /app/build/libtailwarp.so /app/build/libtailwarp.so
+COPY --from=builder /app/build/libtailwarp_kernels.so /app/build/libtailwarp_kernels.so
+COPY --from=builder /app/configs /app/configs
+COPY --from=builder /app/benchmarks/configs /app/benchmarks/configs
+
+ENV LD_LIBRARY_PATH=/app/build:${LD_LIBRARY_PATH}
 ENV CUDA_VISIBLE_DEVICES=0
 ENV NVIDIA_VISIBLE_DEVICES=all
 
-# Default command: run experiments
-# Usage: docker run --rm --gpus all tailwarp:cuda ./build/examples/experiment_run <config.json>
 ENTRYPOINT ["./build/examples/experiment_run"]
 CMD ["configs/experiment_student_t_cvar.json"]
-
-# Alternative usage:
-# docker run --rm --gpus all tailwarp:cuda bash
-#   -> access shell for manual testing
-# docker run --rm --gpus all -v /benchmarks/output:/app/data/output tailwarp:cuda \
-#   -> mount external volume for benchmark results

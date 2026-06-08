@@ -29,6 +29,17 @@ See [RESULTS.md](RESULTS.md) for the full claim-vs-measured separation and S2-01
 
 ## Quick Start
 
+### Python API (CPU — no CUDA toolkit)
+
+```bash
+pip install .
+python -c "from tailwarp import TailWarpClient; print(TailWarpClient().compute_cvar([-0.1, -0.05, 0.0, 0.02]))"
+```
+
+See [docs/python-api.md](docs/python-api.md) and [docs/deployment.md](docs/deployment.md).
+
+### C++ / CUDA build
+
 ```bash
 # Configure and build (tests + examples + CUDA microbenches)
 cmake -B build -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON
@@ -117,6 +128,10 @@ Architecture: Python orchestrates; numerics live in CUDA/C++ — [docs/ARCHITECT
 
 ## Documentation
 
+- **Python API:** [docs/python-api.md](docs/python-api.md) — `TailWarpClient`, install matrix, fallbacks
+- **Deployment:** [docs/deployment.md](docs/deployment.md) — Docker CPU/CUDA, env vars
+- **Integrations (v2.0 prep):** [docs/integrations.md](docs/integrations.md) — mock consumer contracts
+- **API contract:** [docs/python-api-contract.md](docs/python-api-contract.md)
 - **Architecture boundary:** [docs/ARCHITECTURE_BOUNDARY.md](docs/ARCHITECTURE_BOUNDARY.md) — CUDA-first; Python orchestration only
 - **S7 run matrix (planned):** [docs/EXECUTION_MANIFEST.md](docs/EXECUTION_MANIFEST.md)
 - **Results & Claims:** [RESULTS.md](RESULTS.md) — Separates target Black Swan Defense claims from measured results (S2-01)

@@ -1,0 +1,108 @@
+name: GPU smoke validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_parity:
+        description: Run KernelParity GPU subset (ctest -R KernelParity)
+        type: boolean
+        default: true
+      run_cuda_replay:
+        description: Run Black Swan CUDA replay config
+        type: boolean
+        default: false
+      artifact_upload:
+        description: Upload benchmarks/results artifacts
+        type: boolean
+        default: true
+
+jobs:
+  gpu-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect GPU
+        id: detect
+        run: |
+          if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q GPU; then
+            echo "has_gpu=true" >> "$GITHUB_OUTPUT"
+            nvidia-smi
+          else
+            echo "has_gpu=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fallback when no GPU runner (TD-TW-03)
+        if: steps.detect.outputs.has_gpu != 'true'
+        run: |
+          echo "::notice title=skipped::no_gpu_runner — see Tech-Debt.md TD-TW-03 for manual procedure"
+          echo "skipped: no_gpu_runner"
+          exit 0
+
+      - name: Install CUDA toolkit and build deps
+        if: steps.detect.outputs.has_gpu == 'true'
+        uses: Jimver/cuda-toolkit-action@v0.2.17
+        with:
+          cuda: "12.2.0"
+          method: network
+
+      - name: Install GTest
+        if: steps.detect.outputs.has_gpu == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libgtest-dev
+          cd /usr/src/gtest && sudo cmake . && sudo make && sudo cp lib/*.a /usr/lib
+
+      - name: Configure and build
+        if: steps.detect.outputs.has_gpu == 'true'
+        run: |
+          cmake -B build -DBUILD_TESTS=ON -DBUILD_BENCHMARKS=ON
+          cmake --build build -j"$(nproc)"
+
+      - name: GPU smoke test (ctest -R gpu_smoke)
+        if: steps.detect.outputs.has_gpu == 'true'
+        run: |
+          set +e
+          ctest --test-dir build -R gpu_smoke --output-on-failure 2>&1 | tee ctest_gpu_smoke.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            echo "::error::GPU smoke failed kernel=student_t metric=sampler artifact=ctest_gpu_smoke.log"
+            exit "$code"
+          fi
+
+      - name: Optional parity subset
+        if: steps.detect.outputs.has_gpu == 'true' && inputs.run_parity
+        run: |
+          set +e
+          ctest --test-dir build -R KernelParity --output-on-failure 2>&1 | tee ctest_parity.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            echo "::error::GPU/CPU mismatch: kernel=student_t metric=moments artifact=ctest_parity.log"
+            exit "$code"
+          fi
+
+      - name: Optional CUDA Black Swan replay
+        if: steps.detect.outputs.has_gpu == 'true' && inputs.run_cuda_replay
+        id: cuda_replay
+        run: |
+          pip install --upgrade pip
+          pip install pandas matplotlib
+          pip install -r app/requirements-black-swan-dashboard.txt
+          python benchmarks/run_black_swan_benchmark.py \
+            --config benchmarks/configs/black_swan_replay_cuda.json
+
+      - name: Report CUDA replay parity on failure
+        if: failure() && steps.detect.outputs.has_gpu == 'true' && inputs.run_cuda_replay
+        run: |
+          echo "::error::GPU/CPU mismatch: risk.cvar_95 kernel=student_t metric=cvar_95 artifact=benchmarks/results/cuda_black_swan/results.json"
+
+      - name: Upload artifacts
+        if: steps.detect.outputs.has_gpu == 'true' && inputs.artifact_upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpu-smoke-results
+          path: |
+            ctest_gpu_smoke.log
+            ctest_parity.log
+            benchmarks/results/
+          if-no-files-found: ignore

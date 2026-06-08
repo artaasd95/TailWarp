@@ -1,0 +1,21 @@
+# TailWarp slim CPU image (SP-DEPLOY-02)
+#
+# BUILD: docker build -f docker/Dockerfile.cpu -t tailwarp:cpu .
+# RUN:   docker run --rm tailwarp:cpu
+#
+# Target: <300MB — Python slim base, pip install only (no cmake/CUDA).
+
+FROM python:3.11-slim-bookworm
+
+LABEL maintainer="TailWarp Contributors"
+LABEL description="TailWarp CPU pip package smoke image"
+
+WORKDIR /app
+COPY pyproject.toml python/README.md /app/
+COPY python /app/python
+COPY LICENSE /app/LICENSE
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir .
+
+CMD ["python", "-c", "from tailwarp import TailWarpClient; print(TailWarpClient())"]

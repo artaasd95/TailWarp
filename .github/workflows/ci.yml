@@ -1,0 +1,81 @@
+# TailWarp CI (v1.0) — Python smoke + regression warn-only.
+# Policy: regression gate warns on CPU (--warn-only); release workflow may fail hard.
+# Ubuntu cmake + GTest deferred — see Tech-Debt.md TD-TW-04.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  python-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package and benchmark deps
+        run: |
+          pip install --upgrade pip
+          pip install .
+          pip install pytest pandas matplotlib
+          pip install -r app/requirements-black-swan-dashboard.txt
+
+      - name: Run Black Swan replay benchmark
+        run: |
+          python benchmarks/run_black_swan_benchmark.py \
+            --config benchmarks/configs/black_swan_replay.json
+
+      - name: Verify artifact bundle
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          bundle = Path("benchmarks/results/sample_black_swan")
+          required = [
+              "results.json",
+              "summary.md",
+              "environment.json",
+              "tailwarp_vs_variance.csv",
+          ]
+          failed = [str(bundle / r) for r in required if not (bundle / r).exists()]
+          if failed:
+              print("Missing:", ", ".join(failed), file=sys.stderr)
+              sys.exit(1)
+          data = json.loads((bundle / "results.json").read_text())
+          assert data.get("schema_version", 0) >= 2
+          print("Black Swan smoke OK")
+          PY
+
+      - name: Pytest validation and Python API
+        run: pytest tests/validation/ tests/python/ -v
+
+  regression-warn:
+    runs-on: ubuntu-latest
+    needs: python-smoke
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dry-run benchmark schema
+        run: |
+          pip install --upgrade pip
+          python benchmarks/run_benchmarks.py --dry-run --run-id ci_schema_probe
+
+      - name: Regression gate (warn-only on CPU)
+        run: |
+          python scripts/check_regression.py \
+            --warn-only \
+            --results benchmarks/results/ci_schema_probe/results.json \
+            || true

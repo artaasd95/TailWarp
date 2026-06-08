@@ -10,6 +10,7 @@ See dashboard/README.md for the artifact contract.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -32,6 +33,12 @@ from black_swan_loader import (
     resolve_under_repo,
     results_root,
 )
+
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT / "python") not in sys.path:
+    sys.path.insert(0, str(_ROOT / "python"))
+
+from tailwarp import TailWarpClient, WarningStateParams  # noqa: E402
 
 
 def _replay_path(results: BlackSwanResults, override: Optional[str]) -> Path:
@@ -360,6 +367,34 @@ python benchmarks/run_black_swan_benchmark.py \\
         st.caption(f"**{ws.state}** — {ws.reason}")
         if ws.triggered_metrics:
             st.caption(f"Triggered metrics: {', '.join(ws.triggered_metrics)}")
+
+    with st.expander("Live recompute (TailWarpClient, CPU-safe)"):
+        client = TailWarpClient()
+        st.caption(f"Backend: `{client!r}` — reads bundle for display; recomputes on demand only.")
+        if "return" in df.columns and len(df) >= 2:
+            window_returns = df["return"].tail(min(32, len(df))).astype(float).tolist()
+            live_cvar = client.compute_cvar(window_returns, alpha=0.95)
+            st.metric(
+                "CVaR 95% (last window, live)",
+                f"{live_cvar.value:.6f}",
+                help=f"method={live_cvar.method} device={live_cvar.device}",
+            )
+        if results.warning_state is not None and results.warning_state.contributions:
+            contribs = results.warning_state.contributions
+            params = WarningStateParams(
+                solvency_distance=float(
+                    contribs.get("solvency_distance", {}).get("value", 8.0)
+                ),
+                max_drawdown=float(
+                    contribs.get("max_drawdown", {}).get("value", 0.0)
+                ),
+                gross_exposure=float(
+                    contribs.get("gross_exposure", {}).get("value", 1.0)
+                ),
+                cvar_95=float(contribs.get("cvar_95", {}).get("value", -0.08)),
+            )
+            live_ws = client.compute_warning_state(params)
+            st.caption(f"Recomputed warning: **{live_ws.state.name}** — {live_ws.reason}")
 
         contrib_df = _contributions_dataframe(results)
         if contrib_df is not None:

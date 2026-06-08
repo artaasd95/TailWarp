@@ -50,4 +50,33 @@ GPU/CPU mismatch: risk.cvar_95 in benchmarks/results/cuda_black_swan/results.jso
 
 `tests/validation/test_benchmark_risk_metrics.py::TestGpuParity` remains skipped with
 `GPU_CVAR_PARITY_DEFERRED = True` until a GPU workflow exists. Remove the skip when
-`.github/workflows/` gains a CUDA job and tolerances are pinned.
+`.github/workflows/gpu-smoke.yml` runs on a self-hosted GPU runner and tolerances are pinned.
+
+---
+
+## TD-TW-03 — No self-hosted GPU runner fallback (S6-05)
+
+**Status:** Open until `[self-hosted, gpu]` runner is registered.
+
+When `.github/workflows/gpu-smoke.yml` is dispatched on a host without NVIDIA GPUs, the workflow
+exits **0** with annotation `skipped: no_gpu_runner`. Operators must follow the TD-TW-02 manual
+procedure locally or on a GPU machine.
+
+---
+
+## TD-TW-04 — Ubuntu cmake + full GTest CI deferred (SP-BENCH-05)
+
+**Status:** Open (v1.0 scaffold only).
+
+Full `cmake` build and `ctest` on GitHub-hosted Ubuntu runners is deferred. Use
+`scripts/ci-host-tests.sh` on a machine with CUDA toolkit installed. CPU CI runs Python smoke
+only via `.github/workflows/ci.yml`.
+
+---
+
+## TD-TW-05 — Windows cmake/GTest CI deferred
+
+**Status:** Open (v1.0).
+
+Windows-hosted cmake + GTest is not wired in v1.0. Run host tests locally on Windows after
+`cmake -B build -DBUILD_TESTS=ON && cmake --build build`.

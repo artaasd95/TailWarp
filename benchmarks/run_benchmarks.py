@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Canonical benchmark runner (wiring only — SP-BENCH-01).
+Canonical benchmark runner (SP-BENCH-01 / SP-BENCH-02).
 
 Runs the matrix defined in docs/EXECUTION_MANIFEST.md without executing S7 GPU
 full matrix unless --profile cuda_full and a built tree exist.
@@ -14,7 +14,6 @@ import argparse
 import json
 import platform
 import shutil
-import statistics
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -22,7 +21,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 _REPO = Path(__file__).resolve().parent.parent
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 
 
 def repo_root() -> Path:
@@ -76,6 +75,18 @@ def nvidia_metadata() -> dict[str, Any]:
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
     return meta
+
+
+def hardware_block() -> dict[str, Any]:
+    gpu = nvidia_metadata()
+    block: dict[str, Any] = {
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "processor": platform.processor() or platform.machine(),
+        "measurement_label": "cpu_sample",
+    }
+    block.update(gpu)
+    return block
 
 
 def build_dir() -> Path:
@@ -161,6 +172,40 @@ def run_black_swan_smoke() -> dict[str, Any]:
     }
 
 
+def dry_run_rows(k_runs: int, warmup: int) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "student_t_sample",
+            "status": "dry_run",
+            "n_samples": 100000,
+            "mean_ms": 0.0,
+            "median_ms": 0.0,
+            "std_ms": 0.0,
+            "p95_ms": 0.0,
+            "samples_per_sec": 0.0,
+            "k_runs": k_runs,
+            "warmup_runs": warmup,
+        },
+        {
+            "name": "gaussian_sample",
+            "status": "dry_run",
+            "n_samples": 100000,
+            "mean_ms": 0.0,
+            "median_ms": 0.0,
+            "std_ms": 0.0,
+            "p95_ms": 0.0,
+            "samples_per_sec": 0.0,
+            "k_runs": k_runs,
+            "warmup_runs": warmup,
+        },
+        {
+            "name": "black_swan_replay",
+            "status": "dry_run",
+            "measurement_label": "cpu_sample",
+        },
+    ]
+
+
 def assemble_results(
     run_id: str,
     profile: str,
@@ -168,21 +213,23 @@ def assemble_results(
     warmup: int,
     benchmarks: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    env = {
-        "platform": platform.platform(),
-        "python": platform.python_version(),
-        "measurement_label": "cpu_sample" if profile == "cpu_smoke" else "cuda_measured",
-        **nvidia_metadata(),
-    }
+    hw = hardware_block()
+    hw["measurement_label"] = (
+        "cpu_sample" if profile == "cpu_smoke" else "cuda_measured"
+    )
+    gpu_meta = nvidia_metadata()
     return {
         "schema_version": _SCHEMA_VERSION,
         "run_id": run_id,
         "profile": profile,
         "commit_sha": git_commit(),
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "hardware": hw,
+        "cuda_version": gpu_meta.get("cuda_version"),
+        "driver_version": gpu_meta.get("driver_version"),
         "warmup_runs": warmup,
         "k_runs": k_runs,
-        "environment": env,
+        "environment": hw,
         "benchmarks": benchmarks,
         "manifest": "docs/EXECUTION_MANIFEST.md",
     }
@@ -196,61 +243,84 @@ def main() -> int:
         default="cpu_smoke",
         help="cpu_smoke: ctest + optional microbenches; cuda_full: include GPU benches",
     )
-    parser.add_argument("--run-id", default=None, help="Output directory name under benchmarks/results/")
-    parser.add_argument("--k", type=int, default=1, help="K runs for microbenches (passed to --k)")
-    parser.add_argument("--warmup", type=int, default=0, help="Warm-up runs for microbenches")
+    parser.add_argument(
+        "--run-id",
+        default=None,
+        help="Output directory name under benchmarks/results/",
+    )
+    parser.add_argument(
+        "--k",
+        type=int,
+        default=5,
+        help="K measured runs for microbenches",
+    )
+    parser.add_argument(
+        "--warmup",
+        type=int,
+        default=3,
+        help="Warm-up runs for microbenches",
+    )
     parser.add_argument(
         "--skip-black-swan",
         action="store_true",
         help="Do not invoke run_black_swan_benchmark.py",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Write schema v2 bundle without executing subprocesses",
+    )
     args = parser.parse_args()
 
-    run_id = args.run_id or f"bench_{args.profile}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    run_id = args.run_id or (
+        f"bench_{args.profile}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    )
     out_dir = repo_root() / "benchmarks/results" / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict[str, Any]] = []
-    rows.append(run_ctest())
 
-    if args.profile == "cuda_full" or bench_binary("bench_student_t"):
-        exe = bench_binary("bench_student_t")
-        if exe:
-            rows.append(
-                run_bench_exe(
-                    exe,
-                    ["--k", str(args.k), "--warmup", str(args.warmup), "--samples", "100000"],
+    if args.dry_run:
+        rows = dry_run_rows(args.k, args.warmup)
+    else:
+        rows.append(run_ctest())
+
+        bench_args = [
+            "--k",
+            str(args.k),
+            "--warmup",
+            str(args.warmup),
+            "--samples",
+            "100000",
+        ]
+        if args.profile == "cuda_full" or bench_binary("bench_student_t"):
+            exe = bench_binary("bench_student_t")
+            if exe:
+                rows.append(run_bench_exe(exe, bench_args))
+            else:
+                rows.append(
+                    {
+                        "name": "student_t_sample",
+                        "status": "skipped",
+                        "reason": "build bench_student_t first (cmake -DBUILD_BENCHMARKS=ON)",
+                    }
                 )
-            )
-        else:
-            rows.append(
-                {
-                    "name": "student_t_sample",
-                    "status": "skipped",
-                    "reason": "build bench_student_t first (cmake -DBUILD_BENCHMARKS=ON)",
-                }
-            )
 
-    if args.profile == "cuda_full":
-        exe_g = bench_binary("bench_gaussian")
-        if exe_g:
-            rows.append(
-                run_bench_exe(
-                    exe_g,
-                    ["--k", str(args.k), "--warmup", str(args.warmup), "--samples", "100000"],
+        if args.profile == "cuda_full":
+            exe_g = bench_binary("bench_gaussian")
+            if exe_g:
+                rows.append(run_bench_exe(exe_g, bench_args))
+            else:
+                rows.append(
+                    {
+                        "name": "gaussian_sample",
+                        "status": "skipped",
+                        "reason": "build bench_gaussian first",
+                    }
                 )
-            )
-        else:
-            rows.append(
-                {
-                    "name": "gaussian_sample",
-                    "status": "skipped",
-                    "reason": "build bench_gaussian first",
-                }
-            )
 
-    if not args.skip_black_swan and args.profile == "cpu_smoke":
-        rows.append(run_black_swan_smoke())
+        if not args.skip_black_swan and args.profile == "cpu_smoke":
+            rows.append(run_black_swan_smoke())
 
     doc = assemble_results(run_id, args.profile, args.k, args.warmup, rows)
     out_path = out_dir / "results.json"
