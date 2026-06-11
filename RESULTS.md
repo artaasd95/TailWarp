@@ -2,6 +2,8 @@
 
 ## Methodology (v2 — SP-BENCH-03)
 
+**Schema:** [benchmarks/results_schema.json](benchmarks/results_schema.json) — required fields include `commit_sha`, `hardware`, `cuda` / `cuda_version`, `driver` / `driver_version`, `k_runs`, and per-row timing stats `median` / `median_ms`, `mean` / `mean_ms`, `std` / `std_ms`, `p95` / `p95_ms`.
+
 | Parameter | Value | Notes |
 |-----------|-------|-------|
 | Warm-up runs | 3 | Excluded from timing statistics |
@@ -11,6 +13,14 @@
 | Hardware class `cuda_measured` | Native CUDA binaries | Requires GPU build |
 | Regression gate | ±20% vs `benchmarks/baselines/*.json` | `scripts/check_regression.py` (warn on CPU CI) |
 | Artifact layout | `benchmarks/results/<run_id>/results.json` | Schema v2 — see [benchmarks/results/README.md](benchmarks/results/README.md) |
+
+**Measurement protocol**
+
+1. Record `commit_sha` at bundle write time (`git rev-parse HEAD`).
+2. Capture `hardware` (platform, Python, processor; optional `gpu_model`) and, when present, `cuda` / `driver` from `nvcc` / `nvidia-smi`.
+3. Run `warmup_runs` excluded passes, then `k_runs` measured repetitions per microbench target.
+4. Aggregate wall times: report `median`, `mean`, `std`, and `p95` (serialized as `*_ms` in JSON).
+5. Compare against baselines with `scripts/check_regression.py`; CPU CI uses `--warn-only`.
 
 **Run ID placeholders (S7 execution sprint):**
 

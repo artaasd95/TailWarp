@@ -30,5 +30,5 @@ For conceptual details and risk framework overview, see:
 ## Related Components
 
 - [CSV Loader](../utils/csv_loader.cu) – Loading tick/quote data
-- [Risk Metrics](../risk_metrics/cvar.cu) – CVaR adjusted for liquidity
+- [Risk Metrics](../../wrappers/risk_metrics.cpp) – CVaR adjusted for liquidity
 - [Volatility Estimation](../Volatility-Noise/) – Microstructure-aware volatility

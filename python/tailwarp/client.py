@@ -25,6 +25,13 @@ class TailWarpClient:
     """CPU-first client; optional C++ host bindings when `_native` is built."""
 
     def __init__(self, prefer_cuda: Optional[bool] = None) -> None:
+        """Initialize the client.
+
+        Args:
+            prefer_cuda: If True, prefer CUDA backend when native is
+                available. Defaults to the TAILWARP_PREFER_CUDA env var
+                (truthy values: "1", "true", "yes").
+        """
         if prefer_cuda is None:
             env = os.environ.get("TAILWARP_PREFER_CUDA", "0").strip().lower()
             prefer_cuda = env in ("1", "true", "yes")
@@ -37,6 +44,7 @@ class TailWarpClient:
 
     @property
     def has_native(self) -> bool:
+        """Whether the C++ native extension is available."""
         return self._use_native
 
     def compute_cvar(
@@ -44,6 +52,15 @@ class TailWarpClient:
         returns: Sequence[float],
         alpha: float = 0.95,
     ) -> CvarResult:
+        """Compute Conditional Value at Risk (Expected Shortfall).
+
+        Args:
+            returns: Historical return series.
+            alpha: Confidence level (default 0.95).
+
+        Returns:
+            CvarResult containing the CVaR value and metadata.
+        """
         if self._use_native:
             t0 = time.perf_counter()
             value = float(_NATIVE.compute_cvar(list(returns), alpha))
@@ -62,6 +79,15 @@ class TailWarpClient:
         returns: Sequence[float],
         alpha: float = 0.95,
     ) -> VarResult:
+        """Compute Value at Risk.
+
+        Args:
+            returns: Historical return series.
+            alpha: Confidence level (default 0.95).
+
+        Returns:
+            VarResult containing the VaR value and metadata.
+        """
         if self._use_native:
             t0 = time.perf_counter()
             value = float(_NATIVE.compute_var(list(returns), alpha))
@@ -76,6 +102,14 @@ class TailWarpClient:
         return cpu_fallback.compute_var_result(returns, alpha)
 
     def compute_drawdown(self, equity: Sequence[float]) -> DrawdownResult:
+        """Compute maximum drawdown from an equity curve.
+
+        Args:
+            equity: Equity curve values over time.
+
+        Returns:
+            DrawdownResult containing the max drawdown and metadata.
+        """
         return cpu_fallback.compute_drawdown(equity)
 
     def compute_position_size(
@@ -87,6 +121,23 @@ class TailWarpClient:
         alpha: float = 0.95,
         seed: int = 42,
     ) -> PositionSizeResult:
+        """Compute position size subject to a CVaR constraint.
+
+        Uses Monte Carlo simulation under a Student-t distribution to
+        find the maximum position size whose expected CVaR does not
+        exceed the given limit.
+
+        Args:
+            max_cvar_limit: Maximum acceptable CVaR in currency units.
+            underlying_price: Current price of the underlying asset.
+            n_scenarios: Number of Monte Carlo scenarios.
+            nu: Student-t degrees of freedom (default 4.0).
+            alpha: CVaR confidence level (default 0.95).
+            seed: RNG seed for reproducibility.
+
+        Returns:
+            PositionSizeResult with optimal size and diagnostics.
+        """
         return cpu_fallback.compute_position_size(
             max_cvar_limit,
             underlying_price,
@@ -100,6 +151,18 @@ class TailWarpClient:
         self,
         params: WarningStateParams,
     ) -> WarningStateResult:
+        """Compute the aggregate warning state from risk metrics.
+
+        Aggregates solvency distance, max drawdown, gross exposure, and
+        CVaR into a single GREEN/YELLOW/RED/CRITICAL state.
+
+        Args:
+            params: WarningStateParams with all input metrics.
+
+        Returns:
+            WarningStateResult with overall state and per-metric
+            contributions.
+        """
         if self._use_native:
             from .warning_state import WarningState
 

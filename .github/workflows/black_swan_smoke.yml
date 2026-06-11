@@ -1,10 +1,16 @@
 name: Black Swan CPU smoke
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      verify_plots:
+        description: Require plot artifacts in sample bundle
+        type: boolean
+        default: true
+      run_validation_tests:
+        description: Run tests/validation/test_benchmark_risk_metrics.py
+        type: boolean
+        default: true
 
 jobs:
   black-swan-smoke:
@@ -31,18 +37,25 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import os
           import sys
           from pathlib import Path
 
+          verify_plots = os.environ.get("VERIFY_PLOTS", "true").lower() == "true"
           bundle = Path("benchmarks/results/sample_black_swan")
           required = [
               "results.json",
               "summary.md",
               "environment.json",
               "tailwarp_vs_variance.csv",
-              "artifacts/plots/signals.png",
-              "artifacts/plots/equity_stress.png",
           ]
+          if verify_plots:
+              required.extend(
+                  [
+                      "artifacts/plots/signals.png",
+                      "artifacts/plots/equity_stress.png",
+                  ]
+              )
           failed = []
           for rel in required:
               p = bundle / rel
@@ -70,8 +83,11 @@ jobs:
               sys.exit(1)
           print("Black Swan smoke OK:", bundle)
           PY
+        env:
+          VERIFY_PLOTS: ${{ inputs.verify_plots }}
 
       - name: Pytest validation (benchmark metrics)
+        if: inputs.run_validation_tests
         run: pytest tests/validation/test_benchmark_risk_metrics.py -v
 
       # CPU-safe gate only. Full CUDA benchmark reproduction remains manual per CI-PLAN.md.

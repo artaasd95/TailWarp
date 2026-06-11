@@ -31,6 +31,6 @@ For conceptual details and risk framework overview, see:
 
 ## Related Components
 
-- [CVaR CUDA Implementation](../risk_metrics/cvar.cu)
+- [CVaR Wrapper](../../wrappers/risk_metrics.cpp)
 - [Student-t Distribution](../distributions/student_t.cu) – Tail-heavy modeling
 - [Algorithms](../algorithms/) – Position sizing and robust optimization

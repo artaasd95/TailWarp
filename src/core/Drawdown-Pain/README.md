@@ -31,5 +31,5 @@ For conceptual details and risk framework overview, see:
 
 ## Related Components
 
-- [Risk Metrics](../risk_metrics/) – Core risk calculation infrastructure
+- [Risk Metrics](../../wrappers/risk_metrics.cpp) – Core risk calculation infrastructure
 - [Algorithms](../algorithms/) – Strategy evaluation and optimization

@@ -14,6 +14,24 @@
 - **Shadow Greeks:** Option Greeks computed under heavy-tailed assumptions rather than Gaussian vol.
 - **Quasi-Static Hedging:** Using static options positions to hedge barrier risks when dynamic hedging fails.
 
+## Key Formulas
+
+- **Sortino Ratio:** $\text{Sortino} = \frac{R_p - R_f}{\sigma_d}$ where $\sigma_d = \sqrt{\frac{1}{n}\sum \min(0, R_i - R_f)^2}$ is downside deviation.
+- **Omega Ratio:** $\Omega(r) = \frac{\int_r^\infty (1 - F(x))\,dx}{\int_{-\infty}^r F(x)\,dx}$, probability-weighted gains vs losses relative to threshold $r$.
+- **Convexity Index (CI):** $CI = \frac{\text{upside participation}}{\text{downside participation}}$; $CI > 1$ means convex payoff.
+
+## Implementation Status
+
+| Metric | Code | Tests |
+|--------|------|-------|
+| Convexity Index | — | — |
+| Sortino ratio | — | — |
+| Omega ratio | — | — |
+| Skewness / kurtosis | `src/wrappers/risk_metrics.cpp` (sample moments) | — |
+| Karamata-point pricing | — | — |
+| Shadow Greeks | — | — |
+| Quasi-static hedging | — | — |
+
 ## Reference
 
 For detailed information, see [Risk Categories Framework](../risk-categories.md#lens-5--asymmetry--convexity-categories).

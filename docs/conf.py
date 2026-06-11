@@ -11,7 +11,7 @@ sys.path.insert(0, str(REPO_ROOT / "python"))
 
 project = "TailWarp"
 author = "Risk-Aware AI"
-release = "0.1.0"
+release = "1.0.0"
 
 extensions = [
     "sphinx.ext.autodoc",

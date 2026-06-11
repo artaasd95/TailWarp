@@ -30,7 +30,7 @@ Write these answers in a short design note (can be a comment in the code or a ma
 - Keep it simple and high-precision (prefer `double` over `float`)
 
 ### For a risk metric:
-- Add it to `src/algorithms/risk_metrics/` or similar
+- Add it to `src/wrappers/risk_metrics.cpp` or similar
 - Ensure it can be called with a standard interface (input array → output metric)
 
 ---

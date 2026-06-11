@@ -255,10 +255,10 @@ I’ll give you:
 
 Right now, risk literature is a bazaar:
 
-- Some people say: “Risk = volatility” → standard deviation, GARCH, etc.【turn0search2】  
-- Some say: “Risk = tail loss” → VaR, CVaR, tail metrics【turn0search6】【turn0search9】  
-- Some say: “Risk = drawdown pain” → max drawdown, Calmar ratio, etc.【turn0search16】  
-- Some say: “Risk = behavior and perception” → loss aversion, risk perception, herding metrics【turn0search10】【turn0search14】
+- Some people say: “Risk = volatility” → standard deviation, GARCH, etc.  
+- Some say: “Risk = tail loss” → VaR, CVaR, tail metrics  
+- Some say: “Risk = drawdown pain” → max drawdown, Calmar ratio, etc.  
+- Some say: “Risk = behavior and perception” → loss aversion, risk perception, herding metrics
 
 If we just list 50 methods, we have no structure to:
 
@@ -328,7 +328,7 @@ Not all volatility is risk. Some is “breathing,” some is an earthquake. We w
 **What this category covers:**  
 Methods that describe how much and how prices move:
 
-- “Standard” volatility: standard deviation of returns, historical vol【turn0search2】  
+- “Standard” volatility: standard deviation of returns, historical vol  
 - Conditional volatility models (GARCH family, EWMA)  
 - Implied volatility (from options, VIX-type indices)  
 - Realized volatility vs. implied vol  
@@ -359,8 +359,8 @@ Methods focusing specifically on losses and extreme events:
 
 - Downside deviation (only negative returns)  
 - Semi-variance, semi-deviation  
-- Value at Risk (VaR) – worst loss at some confidence level【turn0search6】【turn0search8】  
-- Conditional VaR / Expected Shortfall – average loss in the tail【turn0search9】  
+- Value at Risk (VaR) – worst loss at some confidence level  
+- Conditional VaR / Expected Shortfall – average loss in the tail  
 - Tail risk metrics (e.g., tail index, kurtosis-based measures)  
 - Extreme value theory (EVT) models
 
@@ -390,7 +390,7 @@ Methods that measure the shape and duration of equity-curve damage:
 - Average drawdown  
 - Drawdown duration (time underwater)  
 - Drawdown frequency  
-- Pain indices (e.g., Ulcer Index, Sterling ratio, Calmar ratio)【turn0search16】  
+- Pain indices (e.g., Ulcer Index, Sterling ratio, Calmar ratio)  
 - Recovery time metrics
 
 **The key question:**  
@@ -398,7 +398,7 @@ Methods that measure the shape and duration of equity-curve damage:
 
 **Examples here:**  
 - Max DD, average DD  
-- Calmar ratio (return / max drawdown)【turn0search16】  
+- Calmar ratio (return / max drawdown)  
 - Ulcer Index, etc.
 
 **Why it matters:**  
@@ -414,8 +414,8 @@ This is the core of our “ism”: we want setups that are convex—small downsi
 **What this category covers:**  
 Methods that compare upside vs downside and capture asymmetry:
 
-- Sortino ratio (downside deviation instead of standard deviation)【turn0search16】  
-- Omega ratio (probability-weighted gains vs losses above/below a threshold)【turn0search15】【turn0search17】  
+- Sortino ratio (downside deviation instead of standard deviation)  
+- Omega ratio (probability-weighted gains vs losses above/below a threshold)  
 - Gain-loss ratio  
 - Skewness (third moment)  
 - Higher-moment measures (asymmetry, tail shape)  
@@ -425,8 +425,8 @@ Methods that compare upside vs downside and capture asymmetry:
 “Does this bet have a skewed payoff where I lose a little if wrong but make a lot if right?”
 
 **Examples here:**  
-- Sortino, Omega, Calmar, etc.【turn0search16】  
-- Omega ratio is especially interesting because it explicitly uses a threshold and weights gains vs losses【turn0search15】  
+- Sortino, Omega, Calmar, etc.  
+- Omega ratio is especially interesting because it explicitly uses a threshold and weights gains vs losses  
 - Skew-based and tail-asymmetry measures
 
 **Why it matters:**  
@@ -448,7 +448,7 @@ Methods that describe size, leverage, and sensitivity:
 
 - Gross and net exposure  
 - Leverage ratios (notional / equity, delta-adjusted exposure)  
-- Beta vs market or factors【turn0search0】  
+- Beta vs market or factors  
 - Factor exposures (style, sector, macro factors)  
 - Contribution to risk (which positions contribute most to portfolio risk)
 
@@ -457,7 +457,7 @@ Methods that describe size, leverage, and sensitivity:
 
 **Examples here:**  
 - Position sizing metrics, gross exposure %, net exposure %  
-- Beta, factor loadings【turn0search0】  
+- Beta, factor loadings  
 - Risk contribution / marginal contribution to risk
 
 **Why it matters:**  
@@ -500,19 +500,19 @@ Humans don’t just respond to “objective” risk; they respond to what they f
 **What this category covers:**  
 Methods that capture biases, emotions, and crowds:
 
-- Loss aversion / risk propensity metrics【turn0search10】  
+- Loss aversion / risk propensity metrics  
 - Herding behavior indices  
 - Overconfidence / sentiment indicators  
 - Survey-based risk perception scores  
-- Behavioral risk scores built from decision patterns (e.g., deviation from rational rules)【turn0search14】
+- Behavioral risk scores built from decision patterns (e.g., deviation from rational rules)
 
 **The key question:**  
 “How is the market (or the trader) perceiving risk right now, and how is that perception distorted?”
 
 **Examples here:**  
 - Sentiment indices, put/call ratios as fear proxies  
-- Behavioral risk scales from finance literature【turn0search14】  
-- Metrics for anchoring, herding, overreaction【turn0search10】
+- Behavioral risk scales from finance literature  
+- Metrics for anchoring, herding, overreaction
 
 **Why it matters:**  
 We want our AI to be like a calm psychologist watching a panicked room. This category supplies the inputs to detect:
@@ -561,7 +561,7 @@ Methods that look at risk across instruments, markets, and the whole system:
 - Correlation matrices, dependence structures  
 - Copula models (tail dependence)  
 - Systemic risk indicators (e.g., cross-market stress measures)  
-- Contagion metrics, network-based risk measures【turn0search4】
+- Contagion metrics, network-based risk measures
 
 **The key question:**  
 “If something breaks over there, how does it travel here?”
@@ -569,7 +569,7 @@ Methods that look at risk across instruments, markets, and the whole system:
 **Examples here:**  
 - Correlation, cointegration  
 - Copula-based dependence  
-- Systemic risk / cross-asset stress metrics【turn0search4】
+- Systemic risk / cross-asset stress metrics
 
 **Why it matters:**  
 Pros often manage each trade or book in isolation. Our AI should see the whole web: where risk is concentrated, where contagion is building, and where one breakdown in one area creates an asymmetric opportunity elsewhere.

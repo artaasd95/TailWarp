@@ -13,6 +13,24 @@
 - **Look-Ahead Bias / Data Snooping:** Inadvertently using future information in backtests.
 - **Overconfidence & Herding Metrics:** Indicators of excessive optimism and correlated behavior across agents.
 
+## Key Concepts
+
+- **Model Risk:** The risk that a mis-specified model (e.g., Gaussian when tails are fat) produces systematically wrong risk estimates.
+- **Lucretius Fallacy:** Assuming the worst observed event is the worst possible event — a key source of tail-risk underestimation.
+- **Knightian Uncertainty:** Distinction between measurable risk (probabilities known) and unmeasurable uncertainty (unknown unknowns).
+- **Agency Risk:** Incentive misalignment where traders capture upside but are insulated from downside, encouraging tail-selling behavior.
+
+## Implementation Status
+
+| Metric | Code | Tests |
+|--------|------|-------|
+| Model risk diagnostics | — | — |
+| Agency risk / moral hazard | — | — |
+| Lucretius fallacy detection | — | — |
+| Knightian uncertainty flags | — | — |
+| Look-ahead bias checks | — | — |
+| Herding / overconfidence | — | — |
+
 ## Reference
 
 For detailed information, see [Risk Categories Framework](../risk-categories.md#lens-8--behavioral--decision-making-risks).

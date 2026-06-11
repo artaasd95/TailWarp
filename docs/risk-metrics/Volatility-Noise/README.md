@@ -16,6 +16,21 @@
 - **Microstructure Noise vs Signal:** Separating true price movements from bid–ask bounce and quote noise.
 - **Short-Dated Skew & Jump Diagnostic:** Monitoring far-OTM option prices to detect jump-diffusion dynamics.
 
+## Key Formulas
+
+- **Parkinson Estimator:** $\sigma_P = \frac{1}{n}\sum_{i=1}^n \frac{(H_i - L_i)^2}{4\ln 2}$
+- **Garman–Klass Estimator:** $\sigma_{GK} = \frac{1}{n}\sum_{i=1}^n \left[\frac{(H_i - L_i)^2}{2} - (2\ln 2 - 1)(C_i - O_i)^2\right]$
+- **Yang–Zhang Estimator:** Combines overnight, open-close, and Rogers–Satchell terms for drift-independence.
+
+## Implementation Status
+
+| Metric | Code | Tests |
+|--------|------|-------|
+| Range-based estimators (Parkinson, GK, RS, YZ) | — | — |
+| Rolling close-close volatility | — | — |
+| Regime detection (Markov switching) | — | — |
+| Microstructure noise filtering | — | — |
+
 ## Reference
 
 For detailed information, see [Risk Categories Framework](../risk-categories.md#lens-2--volatility--noise-incl-ltf-no-volume-fx).

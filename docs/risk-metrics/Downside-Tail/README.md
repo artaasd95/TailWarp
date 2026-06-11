@@ -15,6 +15,25 @@
 - **Jump-Diffusion Models:** Combining Brownian diffusion with Poisson-driven jumps for realistic pricing.
 - **Tail Risk Constraints & Barbell:** Formulating constraints to favor strategies with long-tail convexity.
 
+## Key Formulas
+
+- **VaR:** $\text{VaR}_\alpha = F^{-1}(1 - \alpha)$, the loss quantile at confidence $\alpha$.
+- **CVaR (Expected Shortfall):** $\text{CVaR}_\alpha = \mathbb{E}[X \mid X \leq \text{VaR}_\alpha]$, mean loss beyond VaR.
+- **Hill Estimator:** $\hat{\alpha} = \left(\frac{1}{k}\sum_{i=1}^k \ln X_{(i)} - \ln X_{(k+1)}\right)^{-1}$ for tail index $\alpha$.
+- **κ Metric:** $\kappa \in [0,1]$ measuring pre-asymptotic fat-tailedness; higher values require more data for stable mean estimation.
+
+## Implementation Status
+
+| Metric | Code | Tests |
+|--------|------|-------|
+| VaR (host) | `src/wrappers/risk_metrics.cpp` | `test_var_cvar_invariants.cpp` |
+| CVaR (host) | `src/wrappers/risk_metrics.cpp` | `test_cvar.cpp`, parity golden |
+| MDA diagnosis | — | — |
+| Tail index (Hill, POT, GPD) | — | — |
+| κ metric | — | — |
+| Shadow moments | — | — |
+| Gap risk / jump-diffusion | — | — |
+
 ## Reference
 
 For detailed information, see [Risk Categories Framework](../risk-categories.md#lens-3--downside--tail-risks).

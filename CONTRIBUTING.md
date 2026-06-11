@@ -23,7 +23,7 @@ See detailed checklists in `docs/project-plan-docs/02-CHECKLISTS.md`
 
 ### Adding a Risk Metric
 
-1. Implement kernel in `src/core/risk_metrics/`
+1. Implement kernel in `src/wrappers/risk_metrics.cpp`
 2. Add CPU reference
 3. Test invariants (monotonicity, bounds)
 4. Compare GPU vs CPU within tolerance

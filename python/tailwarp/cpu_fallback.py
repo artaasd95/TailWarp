@@ -23,6 +23,15 @@ from .warning_state import (
 
 
 def compute_var(returns: Sequence[float], alpha: float = 0.95) -> float:
+    """Compute Value at Risk as the empirical quantile of returns.
+
+    Args:
+        returns: Historical return series.
+        alpha: Confidence level (default 0.95).
+
+    Returns:
+        The VaR value at the given confidence level.
+    """
     if not returns:
         return 0.0
     sorted_r = sorted(returns)
@@ -32,6 +41,15 @@ def compute_var(returns: Sequence[float], alpha: float = 0.95) -> float:
 
 
 def compute_cvar_value(returns: Sequence[float], alpha: float = 0.95) -> float:
+    """Compute CVaR (Expected Shortfall) as the mean of tail losses.
+
+    Args:
+        returns: Historical return series.
+        alpha: Confidence level (default 0.95).
+
+    Returns:
+        The CVaR value (mean loss beyond the VaR threshold).
+    """
     if not returns:
         return 0.0
     sorted_r = sorted(returns)
@@ -41,6 +59,15 @@ def compute_cvar_value(returns: Sequence[float], alpha: float = 0.95) -> float:
 
 
 def compute_cvar(returns: Sequence[float], alpha: float = 0.95) -> CvarResult:
+    """Compute CVaR and return a CvarResult with timing metadata.
+
+    Args:
+        returns: Historical return series.
+        alpha: Confidence level (default 0.95).
+
+    Returns:
+        CvarResult with the computed value and elapsed time.
+    """
     t0 = time.perf_counter()
     value = compute_cvar_value(returns, alpha)
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
@@ -53,6 +80,15 @@ def compute_cvar(returns: Sequence[float], alpha: float = 0.95) -> CvarResult:
 
 
 def compute_var_result(returns: Sequence[float], alpha: float = 0.95) -> VarResult:
+    """Compute VaR and return a VarResult with timing metadata.
+
+    Args:
+        returns: Historical return series.
+        alpha: Confidence level (default 0.95).
+
+    Returns:
+        VarResult with the computed value and elapsed time.
+    """
     t0 = time.perf_counter()
     value = compute_var(returns, alpha)
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
@@ -65,6 +101,14 @@ def compute_var_result(returns: Sequence[float], alpha: float = 0.95) -> VarResu
 
 
 def max_drawdown_from_equity(equity: Sequence[float]) -> float:
+    """Compute maximum drawdown from an equity curve.
+
+    Args:
+        equity: Equity curve values over time.
+
+    Returns:
+        Maximum drawdown as a fraction of peak equity.
+    """
     if not equity:
         return 0.0
     peak = float(equity[0])
@@ -78,6 +122,14 @@ def max_drawdown_from_equity(equity: Sequence[float]) -> float:
 
 
 def compute_drawdown(equity: Sequence[float]) -> DrawdownResult:
+    """Compute maximum drawdown and return a DrawdownResult.
+
+    Args:
+        equity: Equity curve values over time.
+
+    Returns:
+        DrawdownResult with the max drawdown and elapsed time.
+    """
     t0 = time.perf_counter()
     value = max_drawdown_from_equity(equity)
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
@@ -90,6 +142,16 @@ def compute_drawdown(equity: Sequence[float]) -> DrawdownResult:
 
 
 def _student_t_samples(n: int, nu: float, seed: int) -> np.ndarray:
+    """Generate Student-t distributed random samples.
+
+    Args:
+        n: Number of samples.
+        nu: Degrees of freedom.
+        seed: RNG seed.
+
+    Returns:
+        Array of Student-t samples as float32.
+    """
     rng = np.random.default_rng(seed)
     return rng.standard_t(df=nu, size=n).astype(np.float32)
 
@@ -102,6 +164,23 @@ def compute_position_size(
     alpha: float = 0.95,
     seed: int = 42,
 ) -> PositionSizeResult:
+    """Compute position size under a CVaR constraint via Student-t MC.
+
+    Simulates unit-return scenarios from a Student-t distribution,
+    then scales the position so that the expected CVaR does not exceed
+    max_cvar_limit.
+
+    Args:
+        max_cvar_limit: Maximum acceptable CVaR in currency.
+        underlying_price: Current price of the underlying.
+        n_scenarios: Number of Monte Carlo scenarios.
+        nu: Student-t degrees of freedom.
+        alpha: CVaR confidence level.
+        seed: RNG seed.
+
+    Returns:
+        PositionSizeResult with optimal size and diagnostic fields.
+    """
     t0 = time.perf_counter()
     elapsed = lambda: (time.perf_counter() - t0) * 1000.0
 
@@ -147,6 +226,7 @@ def compute_position_size(
 
 
 def _level_solvency(v: float) -> tuple[WarningState, str]:
+    """Classify solvency distance into a warning level."""
     if v <= 1.0:
         return WarningState.CRITICAL, "solvency_distance ≤ 1σ (CRITICAL)"
     if v <= 2.0:
@@ -157,6 +237,7 @@ def _level_solvency(v: float) -> tuple[WarningState, str]:
 
 
 def _level_drawdown(v: float) -> tuple[WarningState, str]:
+    """Classify max drawdown into a warning level."""
     if v >= 0.60:
         return WarningState.CRITICAL, "max_drawdown ≥ 60% (CRITICAL)"
     if v >= 0.40:
@@ -167,6 +248,7 @@ def _level_drawdown(v: float) -> tuple[WarningState, str]:
 
 
 def _level_exposure(v: float) -> tuple[WarningState, str]:
+    """Classify gross exposure into a warning level."""
     if v >= 8.0:
         return WarningState.CRITICAL, "gross_exposure ≥ 8x (CRITICAL)"
     if v >= 5.0:
@@ -177,6 +259,7 @@ def _level_exposure(v: float) -> tuple[WarningState, str]:
 
 
 def _level_cvar(v: float) -> tuple[WarningState, str]:
+    """Classify CVaR@95% into a warning level."""
     if v <= -0.25:
         return WarningState.CRITICAL, "CVaR@95% ≤ -25% (CRITICAL)"
     if v <= -0.15:
@@ -187,6 +270,17 @@ def _level_cvar(v: float) -> tuple[WarningState, str]:
 
 
 def compute_warning_state(params: WarningStateParams) -> WarningStateResult:
+    """Compute aggregate warning state from multiple risk metrics.
+
+    Evaluates solvency distance, max drawdown, gross exposure, and
+    CVaR@95% against thresholds, then returns the most severe level.
+
+    Args:
+        params: WarningStateParams containing all input metrics.
+
+    Returns:
+        WarningStateResult with overall state and per-metric details.
+    """
     checks = [
         ("solvency_distance", params.solvency_distance, _level_solvency),
         ("max_drawdown", params.max_drawdown, _level_drawdown),

@@ -7,6 +7,7 @@ from enum import IntEnum
 
 
 class WarningState(IntEnum):
+    """Warning severity levels."""
     GREEN = 0
     YELLOW = 1
     RED = 2
@@ -23,6 +24,14 @@ METRIC_NAMES = (
 
 @dataclass
 class WarningStateParams:
+    """Input parameters for warning state computation.
+
+    Attributes:
+        solvency_distance: Distance to ruin in CVaR-scale units.
+        max_drawdown: Current maximum drawdown as a fraction.
+        gross_exposure: Gross leverage ratio (notional / equity).
+        cvar_95: CVaR at 95% confidence level.
+    """
     solvency_distance: float
     max_drawdown: float
     gross_exposure: float
@@ -31,6 +40,14 @@ class WarningStateParams:
 
 @dataclass
 class MetricContribution:
+    """Contribution of a single metric to the warning state.
+
+    Attributes:
+        name: Metric name (e.g. "solvency_distance").
+        level: Warning level for this metric.
+        value: Raw metric value.
+        message: Human-readable explanation of the level.
+    """
     name: str
     level: WarningState
     value: float
@@ -39,6 +56,14 @@ class MetricContribution:
 
 @dataclass
 class WarningStateResult:
+    """Aggregate warning state across all monitored metrics.
+
+    Attributes:
+        state: Overall worst-case warning level.
+        reason: Human-readable summary of triggered warnings.
+        triggered_metrics: Bitmask of triggered metric indices.
+        contributions: Per-metric contributions to the state.
+    """
     state: WarningState
     reason: str
     triggered_metrics: int

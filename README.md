@@ -1,6 +1,22 @@
+<p align="center">
+  <img src="assets/logo.png" alt="TailWarp logo" width="128" />
+</p>
+
 # TailWarp
 
 Geometric methods for tail-aware risk optimization using GPU acceleration.
+
+## Showcase
+
+| Capability | Status | Evidence |
+|------------|--------|----------|
+| CPU Python API (`TailWarpClient`) | ✅ Shipped | `pip install .` — CVaR, drawdown, sizing, warning state |
+| Black Swan replay (CPU) | ✅ Measured | [benchmarks/results/sample_black_swan/](benchmarks/results/sample_black_swan/) |
+| Benchmark schema v2 | ✅ Locked | [benchmarks/results_schema.json](benchmarks/results_schema.json) |
+| GPU microbenches | ⚙️ Manual | [`.github/workflows/gpu-smoke.yml`](.github/workflows/gpu-smoke.yml) (`workflow_dispatch`) |
+| CI (free-plan safe) | ✅ CPU pytest | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on `main` / `develop` |
+
+**Headline numbers (CPU sample replay):** +54 h lead time vs variance EWMA baseline — see [RESULTS.md](RESULTS.md) Test 4.
 
 ## Overview
 
