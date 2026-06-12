@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="assets/banner.png" alt="TailWarp banner" width="100%" />
+</p>
+
+<p align="center">
   <img src="assets/logo.png" alt="TailWarp logo" width="128" />
 </p>
 
@@ -77,6 +81,7 @@ Optional: `make` builds CUDA objects only (see [Makefile](Makefile)); prefer CMa
 
 ```
 TailWarp/
+├── assets/            # Brand assets (logo.png, banner.png)
 ├── src/               # CUDA kernels, wrappers, algorithms
 ├── tests/             # Unit tests, validation, integration tests
 ├── app/               # Optional Streamlit dashboards (CPU)
@@ -86,6 +91,15 @@ TailWarp/
 ├── scripts/           # Build and validation scripts
 └── docs/              # Documentation and research notes
 ```
+
+## Brand assets
+
+| File | Purpose | Recommended size |
+|------|---------|------------------|
+| [`assets/logo.png`](assets/logo.png) | Project logo (README, Sphinx docs) | 512×512 px |
+| [`assets/banner.png`](assets/banner.png) | README / social banner | 1280×320 px |
+
+Placeholders are checked in now — swap in your final PNGs with the same filenames. See [`assets/README.md`](assets/README.md) for usage notes.
 
 ## Requirements
 

@@ -559,4 +559,5 @@ implement-code-prompt.txt
 *.csv
 *.json
 *.png
+!assets/*.png
 linkedin-post-ideas.md
