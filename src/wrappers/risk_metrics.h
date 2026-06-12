@@ -107,11 +107,7 @@ RiskMetrics compute_risk_metrics(const std::vector<float>& returns, float alpha 
  *
  * Algorithm:
  * 1. Check each metric against green/yellow/red/critical thresholds
- * 2. If any metric is CRITICAL → return CRITICAL
- * 3. If multiple metrics are RED → return RED
- * 4. If any metric is RED → return RED
- * 5. If any metric is YELLOW → return YELLOW
- * 6. Otherwise → return GREEN
+ * 2. Return the maximum (most severe) level across all metrics
  *
  * Thresholds (defined in docs/VALIDATION.md, S2-01 Decision Log):
  *   Solvency Distance:  GREEN (>3σ), YELLOW (2-3σ), RED (1-2σ), CRITICAL (≤1σ)

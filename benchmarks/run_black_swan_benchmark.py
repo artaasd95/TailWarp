@@ -105,6 +105,8 @@ def run_replay(config: dict[str, Any]) -> dict[str, Any]:
     returns = df["return"].astype(float).tolist()
     equity = df["equity"].astype(float).tolist()
     exposure = df["exposure"].astype(float).tolist()
+    if not equity:
+        raise ValueError(f"{replay_path}: equity column is empty")
     initial_equity = equity[0]
 
     tw_cfg = config["tailwarp"]
@@ -440,7 +442,10 @@ def run_benchmark(config_path: Path) -> Path:
     result = run_replay(config)
     df = result["df"]
 
-    cfg_rel = config_path.resolve().relative_to(repo_root().resolve()).as_posix()
+    try:
+        cfg_rel = config_path.resolve().relative_to(repo_root().resolve()).as_posix()
+    except ValueError:
+        cfg_rel = config_path.resolve().as_posix()
     command = f"python benchmarks/run_black_swan_benchmark.py --config {cfg_rel}"
 
     replay_rel = Path(config["replay_csv"]).as_posix()

@@ -46,6 +46,17 @@ __all__ = [
     "ewma_variance",
 ]
 
+# Replay composite score tuning (CPU short-series heuristic; not S2-02 formal bands).
+_DD_SATURATION = 0.025
+_EXP_ONSET = 0.55
+_EXP_RANGE = 0.35
+_CVAR_ONSET = 0.008
+_VOL_SATURATION = 0.006
+_WEIGHT_DD = 0.85
+_WEIGHT_EXP = 0.90
+_WEIGHT_CVAR = 0.95
+_WEIGHT_VOL = 0.80
+
 
 def compute_cvar(returns, alpha: float = 0.95) -> float:
     """Scalar CVaR for benchmark scripts (returns value only)."""
@@ -58,7 +69,14 @@ def compute_solvency_distance(
     rolling_std: float,
     ruin_fraction: float = 0.5,
 ) -> float:
-    """Approximate σ-distance to a ruin floor (CPU benchmark path)."""
+    """Heuristic ruin-distance ratio for CPU replay (not true σ-distance).
+
+    Computes ``(equity_buffer_fraction) / rolling_return_std`` where the buffer
+    is ``(equity - ruin_floor) / equity``. This is a dimensionless replay
+    heuristic, not the CVaR-scale solvency distance in
+    ``src/core/Structural-Ruin/solvency_distance.cu``. Warning-state thresholds
+    applied to this value are approximate on short CPU replays.
+    """
     if rolling_std <= 1e-12 or equity <= 0 or initial_equity <= 0:
         return 99.0
     ruin_equity = initial_equity * ruin_fraction
@@ -91,16 +109,16 @@ def replay_composite_score(
 ) -> float:
     """Continuous stress score for short CPU replays."""
     ws_score = warning_state_to_score(compute_warning_state(params))
-    dd_signal = min(1.0, params.max_drawdown / 0.025)
-    exp_signal = min(1.0, max(0.0, params.gross_exposure - 0.55) / 0.35)
-    cvar_signal = min(1.0, max(0.0, -params.cvar_95 - 0.008) / 0.008)
-    vol_signal = min(1.0, rolling_std / 0.006)
+    dd_signal = min(1.0, params.max_drawdown / _DD_SATURATION)
+    exp_signal = min(1.0, max(0.0, params.gross_exposure - _EXP_ONSET) / _EXP_RANGE)
+    cvar_signal = min(1.0, max(0.0, -params.cvar_95 - _CVAR_ONSET) / _CVAR_ONSET)
+    vol_signal = min(1.0, rolling_std / _VOL_SATURATION)
     composite = max(
         ws_score,
-        dd_signal * 0.85,
-        exp_signal * 0.90,
-        cvar_signal * 0.95,
-        vol_signal * 0.80,
+        dd_signal * _WEIGHT_DD,
+        exp_signal * _WEIGHT_EXP,
+        cvar_signal * _WEIGHT_CVAR,
+        vol_signal * _WEIGHT_VOL,
     )
     return min(0.99, composite)
 

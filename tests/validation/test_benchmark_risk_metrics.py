@@ -16,8 +16,10 @@ from benchmarks.risk_metrics import (  # noqa: E402
     WarningState,
     WarningStateParams,
     compute_cvar,
+    compute_solvency_distance,
     compute_var,
     compute_warning_state,
+    ewma_variance,
     max_drawdown_from_equity,
     replay_composite_score,
 )
@@ -43,11 +45,47 @@ class TestCVaR:
         c99 = compute_cvar(returns, 0.99)
         assert c99 < c95 < c90
 
+    @pytest.mark.parametrize("alpha", [0.0, 1.0, -0.1, 1.5, float("nan")])
+    def test_invalid_alpha_raises(self, alpha: float):
+        with pytest.raises(ValueError, match="alpha must be in"):
+            compute_cvar([-0.1, 0.1], alpha)
+        with pytest.raises(ValueError, match="alpha must be in"):
+            compute_var([-0.1, 0.1], alpha)
+
 
 class TestDrawdown:
     def test_peak_trough(self):
         equity = [1.0, 1.1, 0.9, 0.95]
         assert max_drawdown_from_equity(equity) == pytest.approx((1.1 - 0.9) / 1.1, rel=1e-4)
+
+
+class TestSolvencyDistance:
+    def test_at_ruin_floor(self):
+        assert compute_solvency_distance(50.0, 100.0, 0.01, ruin_fraction=0.5) == 0.0
+
+    def test_below_ruin_floor(self):
+        assert compute_solvency_distance(40.0, 100.0, 0.01, ruin_fraction=0.5) == 0.0
+
+    def test_zero_std_returns_safe_default(self):
+        assert compute_solvency_distance(80.0, 100.0, 0.0) == 99.0
+
+    def test_positive_distance(self):
+        dist = compute_solvency_distance(80.0, 100.0, 0.01, ruin_fraction=0.5)
+        assert dist > 0.0
+
+
+class TestEwmaVariance:
+    def test_empty_returns(self):
+        assert ewma_variance([], 0.94) == []
+
+    def test_single_element(self):
+        result = ewma_variance([0.02], 0.94)
+        assert len(result) == 1
+        assert result[0] == pytest.approx(0.94 * 0.0 + 0.06 * 0.02 * 0.02)
+
+    def test_deterministic(self):
+        returns = [0.01, -0.02, 0.015]
+        assert ewma_variance(returns, 0.94) == ewma_variance(returns, 0.94)
 
 
 class TestWarningState:
@@ -70,7 +108,6 @@ class TestWarningState:
         assert payload["contributions"]["max_drawdown"]["level"] == "YELLOW"
 
     def test_monotonicity_solvency(self):
-        base = WarningStateParams(8.0, 0.05, 2.0, -0.08)
         levels = []
         for dist in (8.0, 2.5, 1.5, 0.5):
             levels.append(
@@ -80,12 +117,23 @@ class TestWarningState:
             )
         assert levels == sorted(levels)
 
+    def test_nan_input_is_critical(self):
+        result = compute_warning_state(
+            WarningStateParams(float("nan"), 0.05, 2.0, -0.08)
+        )
+        assert result.state == WarningState.CRITICAL
+
 
 class TestReplayComposite:
     def test_stress_series_rises(self):
         calm = WarningStateParams(100.0, 0.01, 0.5, -0.005)
         stress = WarningStateParams(100.0, 0.03, 0.9, -0.015)
         assert replay_composite_score(stress, 0.008) > replay_composite_score(calm, 0.001)
+
+    def test_score_bounded(self):
+        params = WarningStateParams(0.5, 0.9, 12.0, -0.5)
+        score = replay_composite_score(params, 0.05)
+        assert 0.0 <= score <= 0.99
 
 
 class TestSampleBundle:
@@ -130,9 +178,11 @@ class TestSampleBundle:
     reason="GPU CVaR parity deferred (TD-TW-02): see Tech-Debt.md manual procedure.",
 )
 class TestGpuParity:
+    BUNDLE = _REPO / "benchmarks" / "results" / "sample_black_swan"
+
     def test_gpu_cpu_cvar(self):
         artifact = self.BUNDLE / "results.json"
-        pytest.fail(
+        pytest.skip(
             f"GPU/CPU parity not implemented: compare risk.cvar_95 in {artifact} "
             f"per {TD_TW_02_DOC}"
         )

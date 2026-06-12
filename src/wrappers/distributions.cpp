@@ -2,6 +2,7 @@
 
 #include <cuda_runtime.h>
 
+#include <cmath>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -27,6 +28,10 @@ std::vector<float> sample_student_t(
 ) {
     if (n_samples <= 0) {
         return {};
+    }
+    if (nu <= 0.0f || std::floor(nu) != static_cast<double>(nu)) {
+        throw std::invalid_argument(
+            "student_t degrees of freedom (nu) must be a positive integer");
     }
     float* d = nullptr;
     throw_cuda(cudaMalloc(&d, static_cast<size_t>(n_samples) * sizeof(float)), "cudaMalloc");

@@ -22,6 +22,7 @@ __all__ = [
     "WarningState",
     "WarningStateParams",
     "WarningStateResult",
+    "__version__",
 ]
 
 __version__ = "1.0.0"

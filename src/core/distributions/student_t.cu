@@ -10,7 +10,7 @@
 __global__ void sample_student_t_kernel(
     float* samples,
     int n_samples,
-    float nu,  // degrees of freedom
+    float nu,  // degrees of freedom (positive integer; validated on host)
     unsigned long long seed
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -19,14 +19,12 @@ __global__ void sample_student_t_kernel(
     curandState state;
     curand_init(seed, idx, 0, &state);
     
-    // Box-Muller for normal
-    float u1 = curand_uniform(&state);
-    float u2 = curand_uniform(&state);
-    float z = sqrtf(-2.0f * logf(u1)) * cosf(2.0f * M_PI * u2);
+    float z = curand_normal(&state);
     
-    // Chi-squared for denominator
+    // Chi-squared(nu) via sum of nu squared standard normals (integer nu only)
+    int nu_int = static_cast<int>(nu);
     float chi_sq = 0.0f;
-    for (int i = 0; i < (int)nu; i++) {
+    for (int i = 0; i < nu_int; i++) {
         float g = curand_normal(&state);
         chi_sq += g * g;
     }

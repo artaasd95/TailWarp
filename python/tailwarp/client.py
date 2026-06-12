@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence, TypeVar
 
 from . import cpu_fallback
 from .types import CvarResult, DrawdownResult, PositionSizeResult, VarResult
@@ -19,6 +19,8 @@ try:
     _NATIVE = _native_mod
 except ImportError as exc:
     _NATIVE_ERROR = str(exc)
+
+_T = TypeVar("_T", CvarResult, VarResult)
 
 
 class TailWarpClient:
@@ -47,6 +49,13 @@ class TailWarpClient:
         """Whether the C++ native extension is available."""
         return self._use_native
 
+    def _timed_native(self, fn: Callable[..., float], *args: object) -> tuple[float, float]:
+        """Run a native binding and return (value, elapsed_ms)."""
+        t0 = time.perf_counter()
+        value = float(fn(*args))
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        return value, elapsed_ms
+
     def compute_cvar(
         self,
         returns: Sequence[float],
@@ -62,14 +71,13 @@ class TailWarpClient:
             CvarResult containing the CVaR value and metadata.
         """
         if self._use_native:
-            t0 = time.perf_counter()
-            value = float(_NATIVE.compute_cvar(list(returns), alpha))
-            elapsed_ms = (time.perf_counter() - t0) * 1000.0
-            device = "cuda" if self.prefer_cuda else "cpu"
+            value, elapsed_ms = self._timed_native(
+                _NATIVE.compute_cvar, list(returns), alpha
+            )
             return CvarResult(
                 value=value,
                 method="native",
-                device=device,
+                device="cpu",
                 elapsed_ms=elapsed_ms,
             )
         return cpu_fallback.compute_cvar(returns, alpha)
@@ -89,14 +97,13 @@ class TailWarpClient:
             VarResult containing the VaR value and metadata.
         """
         if self._use_native:
-            t0 = time.perf_counter()
-            value = float(_NATIVE.compute_var(list(returns), alpha))
-            elapsed_ms = (time.perf_counter() - t0) * 1000.0
-            device = "cuda" if self.prefer_cuda else "cpu"
+            value, elapsed_ms = self._timed_native(
+                _NATIVE.compute_var, list(returns), alpha
+            )
             return VarResult(
                 value=value,
                 method="native",
-                device=device,
+                device="cpu",
                 elapsed_ms=elapsed_ms,
             )
         return cpu_fallback.compute_var_result(returns, alpha)
@@ -172,9 +179,11 @@ class TailWarpClient:
                 params.gross_exposure,
                 params.cvar_95,
             )
+            contributions = cpu_fallback.compute_warning_state(params).contributions
             return WarningStateResult(
                 state=WarningState(raw["state"]),
                 reason=raw["reason"],
                 triggered_metrics=raw["triggered_metrics"],
+                contributions=contributions,
             )
         return cpu_fallback.compute_warning_state(params)

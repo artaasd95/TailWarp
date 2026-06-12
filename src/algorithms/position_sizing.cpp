@@ -39,9 +39,7 @@ PositionSizingResult compute_position_size(
         return result;
     }
 
-    // Notional scale so that "size" is loosely comparable to share count at `underlying_price`.
-    const float unit = 1.0f;
-    float w = max_cvar_limit / denom * unit;
+    float w = max_cvar_limit / denom;
 
     std::vector<float> scaled(static_cast<size_t>(n_scenarios));
     for (int i = 0; i < n_scenarios; ++i) {

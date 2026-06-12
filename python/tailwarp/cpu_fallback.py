@@ -22,6 +22,26 @@ from .warning_state import (
 )
 
 
+def _validate_alpha(alpha: float) -> None:
+    if not (0.0 < alpha < 1.0):
+        raise ValueError(f"alpha must be in (0, 1), got {alpha!r}")
+
+
+def _tail_count(n: int, alpha: float) -> int:
+    return max(1, min(n, int(math.ceil((1.0 - alpha) * n))))
+
+
+def _numpy_cvar(arr: np.ndarray, alpha: float) -> float:
+    """CVaR on a NumPy array using partition (O(n) average)."""
+    _validate_alpha(alpha)
+    n = len(arr)
+    if n == 0:
+        return 0.0
+    k = _tail_count(n, alpha)
+    partitioned = np.partition(arr, k - 1)
+    return float(partitioned[:k].mean())
+
+
 def compute_var(returns: Sequence[float], alpha: float = 0.95) -> float:
     """Compute Value at Risk as the empirical quantile of returns.
 
@@ -32,11 +52,12 @@ def compute_var(returns: Sequence[float], alpha: float = 0.95) -> float:
     Returns:
         The VaR value at the given confidence level.
     """
+    _validate_alpha(alpha)
     if not returns:
         return 0.0
     sorted_r = sorted(returns)
     n = len(sorted_r)
-    k = max(1, min(n, int(math.ceil((1.0 - alpha) * n))))
+    k = _tail_count(n, alpha)
     return float(sorted_r[k - 1])
 
 
@@ -50,11 +71,12 @@ def compute_cvar_value(returns: Sequence[float], alpha: float = 0.95) -> float:
     Returns:
         The CVaR value (mean loss beyond the VaR threshold).
     """
+    _validate_alpha(alpha)
     if not returns:
         return 0.0
     sorted_r = sorted(returns)
     n = len(sorted_r)
-    k = max(1, min(n, int(math.ceil((1.0 - alpha) * n))))
+    k = _tail_count(n, alpha)
     return float(sum(sorted_r[:k]) / float(k))
 
 
@@ -182,7 +204,9 @@ def compute_position_size(
         PositionSizeResult with optimal size and diagnostic fields.
     """
     t0 = time.perf_counter()
-    elapsed = lambda: (time.perf_counter() - t0) * 1000.0
+
+    def elapsed() -> float:
+        return (time.perf_counter() - t0) * 1000.0
 
     if max_cvar_limit <= 0.0 or underlying_price <= 0.0 or n_scenarios < 2:
         return PositionSizeResult(
@@ -196,7 +220,7 @@ def compute_position_size(
         )
 
     samples = _student_t_samples(n_scenarios, nu, seed)
-    unit_cvar = compute_cvar_value(samples.tolist(), alpha)
+    unit_cvar = _numpy_cvar(samples, alpha)
     denom = abs(unit_cvar)
     if denom < 1e-12:
         return PositionSizeResult(
@@ -210,8 +234,7 @@ def compute_position_size(
         )
 
     w = max_cvar_limit / denom
-    scaled = (w * samples).tolist()
-    expected_cvar = compute_cvar_value(scaled, alpha)
+    expected_cvar = float(w * unit_cvar)
     expected_return = float(np.mean(w * samples))
     constraint_satisfied = abs(expected_cvar) <= max_cvar_limit * (1.0 + 1e-4)
     return PositionSizeResult(
@@ -225,8 +248,14 @@ def compute_position_size(
     )
 
 
+def _non_finite_level(name: str, v: float) -> tuple[WarningState, str]:
+    return WarningState.CRITICAL, f"{name} non-finite ({v}) (CRITICAL)"
+
+
 def _level_solvency(v: float) -> tuple[WarningState, str]:
     """Classify solvency distance into a warning level."""
+    if not math.isfinite(v):
+        return _non_finite_level("solvency_distance", v)
     if v <= 1.0:
         return WarningState.CRITICAL, "solvency_distance ≤ 1σ (CRITICAL)"
     if v <= 2.0:
@@ -238,6 +267,8 @@ def _level_solvency(v: float) -> tuple[WarningState, str]:
 
 def _level_drawdown(v: float) -> tuple[WarningState, str]:
     """Classify max drawdown into a warning level."""
+    if not math.isfinite(v):
+        return _non_finite_level("max_drawdown", v)
     if v >= 0.60:
         return WarningState.CRITICAL, "max_drawdown ≥ 60% (CRITICAL)"
     if v >= 0.40:
@@ -249,6 +280,8 @@ def _level_drawdown(v: float) -> tuple[WarningState, str]:
 
 def _level_exposure(v: float) -> tuple[WarningState, str]:
     """Classify gross exposure into a warning level."""
+    if not math.isfinite(v):
+        return _non_finite_level("gross_exposure", v)
     if v >= 8.0:
         return WarningState.CRITICAL, "gross_exposure ≥ 8x (CRITICAL)"
     if v >= 5.0:
@@ -260,6 +293,8 @@ def _level_exposure(v: float) -> tuple[WarningState, str]:
 
 def _level_cvar(v: float) -> tuple[WarningState, str]:
     """Classify CVaR@95% into a warning level."""
+    if not math.isfinite(v):
+        return _non_finite_level("cvar_95", v)
     if v <= -0.25:
         return WarningState.CRITICAL, "CVaR@95% ≤ -25% (CRITICAL)"
     if v <= -0.15:

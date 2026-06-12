@@ -12,6 +12,7 @@ _REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO / "python"))
 
 from tailwarp import TailWarpClient, WarningState, WarningStateParams
+from tailwarp import cpu_fallback
 
 
 @pytest.fixture
@@ -43,6 +44,14 @@ class TestComputeCvar:
         returns = [-0.3, -0.2, 0.0, 0.1]
         result = client.compute_var(returns, 0.75)
         assert result.value == pytest.approx(-0.3, abs=1e-6)
+
+    @pytest.mark.parametrize("alpha", [0.0, 1.0, -0.1, 1.5, float("nan")])
+    def test_invalid_alpha_raises(self, client: TailWarpClient, alpha: float) -> None:
+        returns = [-0.1, 0.0, 0.1]
+        with pytest.raises(ValueError, match="alpha must be in"):
+            client.compute_cvar(returns, alpha)
+        with pytest.raises(ValueError, match="alpha must be in"):
+            client.compute_var(returns, alpha)
 
 
 class TestComputeDrawdown:
@@ -76,6 +85,7 @@ class TestWarningState:
         result = client.compute_warning_state(params)
         assert result.state == WarningState.GREEN
         assert result.triggered_metrics == 0
+        assert len(result.contributions) == 4
 
     def test_solvency_critical(self, client: TailWarpClient) -> None:
         params = WarningStateParams(0.8, 0.05, 2.0, -0.08)
@@ -83,10 +93,31 @@ class TestWarningState:
         assert result.state == WarningState.CRITICAL
         assert "solvency_distance" in result.triggered_names()
 
-    def test_nan_input_rejected_or_finite(self, client: TailWarpClient) -> None:
-        params = WarningStateParams(
-            float("nan"), 0.05, 2.0, -0.08
-        )
+    def test_nan_input_is_critical(self, client: TailWarpClient) -> None:
+        params = WarningStateParams(float("nan"), 0.05, 2.0, -0.08)
         result = client.compute_warning_state(params)
-        assert result.state in WarningState
+        assert result.state == WarningState.CRITICAL
+        assert result.state != WarningState.GREEN
         assert not math.isnan(result.state.value)
+        assert "solvency_distance" in result.triggered_names()
+
+    @pytest.mark.skipif(
+        not TailWarpClient().has_native,
+        reason="native extension not built",
+    )
+    def test_native_path_populates_contributions(self) -> None:
+        client = TailWarpClient()
+        params = WarningStateParams(8.0, 0.25, 2.0, -0.08)
+        result = client.compute_warning_state(params)
+        assert len(result.contributions) == 4
+        assert result.contributions[1].name == "max_drawdown"
+        assert result.contributions[1].level == WarningState.YELLOW
+
+
+class TestAlphaValidationDirect:
+    @pytest.mark.parametrize("alpha", [0.0, 1.0, -0.1, 1.5, float("nan")])
+    def test_cpu_fallback_rejects_invalid_alpha(self, alpha: float) -> None:
+        with pytest.raises(ValueError, match="alpha must be in"):
+            cpu_fallback.compute_var([-0.1, 0.1], alpha)
+        with pytest.raises(ValueError, match="alpha must be in"):
+            cpu_fallback.compute_cvar_value([-0.1, 0.1], alpha)

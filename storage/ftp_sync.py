@@ -38,7 +38,10 @@ def _ensure_ftp_dirs(ftp: ftplib.FTP, remote_path: str) -> None:
         try:
             ftp.cwd(current)
         except ftplib.error_perm:
-            ftp.mkd(current)
+            try:
+                ftp.mkd(current)
+            except ftplib.error_perm:
+                pass
             ftp.cwd(current)
 
 
@@ -78,25 +81,28 @@ def sync_ftp(
     uploaded = 0
     skipped = 0
 
-    with ftplib.FTP() as ftp:
-        ftp.connect(host, port, timeout=60)
-        ftp.login(user, password)
-        _ensure_ftp_dirs(ftp, prefix)
+    try:
+        with ftplib.FTP() as ftp:
+            ftp.connect(host, port, timeout=60)
+            ftp.login(user, password)
+            _ensure_ftp_dirs(ftp, prefix)
 
-        for rel in upload_dirs:
-            local_dir = local_root / rel
-            if not local_dir.is_dir():
-                continue
-            for local_file in local_dir.rglob("*"):
-                if not local_file.is_file():
+            for rel in upload_dirs:
+                local_dir = local_root / rel
+                if not local_dir.is_dir():
                     continue
-                rel_path = local_file.relative_to(local_root).as_posix()
-                remote_file = f"{prefix}/{rel_path}"
-                if _upload_file_ftp(ftp, local_file, remote_file):
-                    uploaded += 1
-                    print(f"uploaded {rel_path}")
-                else:
-                    skipped += 1
+                for local_file in local_dir.rglob("*"):
+                    if not local_file.is_file():
+                        continue
+                    rel_path = local_file.relative_to(local_root).as_posix()
+                    remote_file = f"{prefix}/{rel_path}"
+                    if _upload_file_ftp(ftp, local_file, remote_file):
+                        uploaded += 1
+                        print(f"uploaded {rel_path}")
+                    else:
+                        skipped += 1
+    except (OSError, ftplib.error_perm) as exc:
+        raise RuntimeError(f"FTP sync failed for {host}:{port}: {exc}") from exc
 
     return {"uploaded": uploaded, "skipped": skipped}
 
@@ -123,9 +129,16 @@ def sync_sftp(
     skipped = 0
 
     transport = paramiko.Transport((host, port))
-    transport.connect(username=user, password=password)
+    try:
+        transport.connect(username=user, password=password)
+    except Exception as exc:
+        transport.close()
+        raise RuntimeError(f"SFTP connection failed for {host}:{port}: {exc}") from exc
+
     sftp = paramiko.SFTPClient.from_transport(transport)
-    assert sftp is not None
+    if sftp is None:
+        transport.close()
+        raise RuntimeError("Failed to create SFTP client from transport")
 
     def ensure_remote_dir(remote_path: str) -> None:
         parts = [p for p in remote_path.split("/") if p]
@@ -137,39 +150,49 @@ def sync_sftp(
             except OSError:
                 sftp.mkdir(current)
 
-    ensure_remote_dir(prefix)
+    try:
+        ensure_remote_dir(prefix)
 
-    for rel in upload_dirs:
-        local_dir = local_root / rel
-        if not local_dir.is_dir():
-            continue
-        for local_file in local_dir.rglob("*"):
-            if not local_file.is_file():
+        for rel in upload_dirs:
+            local_dir = local_root / rel
+            if not local_dir.is_dir():
                 continue
-            rel_path = local_file.relative_to(local_root).as_posix()
-            remote_file = f"{prefix}/{rel_path}"
-            remote_parent = "/".join(remote_file.split("/")[:-1])
-            if remote_parent:
-                ensure_remote_dir(remote_parent)
-            try:
-                remote_size = sftp.stat(remote_file).st_size
-            except OSError:
-                remote_size = None
-            local_size = local_file.stat().st_size
-            if remote_size is not None and remote_size == local_size:
-                skipped += 1
-                continue
-            sftp.put(str(local_file), remote_file)
-            uploaded += 1
-            print(f"uploaded {rel_path}")
+            for local_file in local_dir.rglob("*"):
+                if not local_file.is_file():
+                    continue
+                rel_path = local_file.relative_to(local_root).as_posix()
+                remote_file = f"{prefix}/{rel_path}"
+                remote_parent = "/".join(remote_file.split("/")[:-1])
+                if remote_parent:
+                    ensure_remote_dir(remote_parent)
+                try:
+                    remote_size = sftp.stat(remote_file).st_size
+                except OSError:
+                    remote_size = None
+                local_size = local_file.stat().st_size
+                if remote_size is not None and remote_size == local_size:
+                    skipped += 1
+                    continue
+                sftp.put(str(local_file), remote_file)
+                uploaded += 1
+                print(f"uploaded {rel_path}")
+    finally:
+        sftp.close()
+        transport.close()
 
-    sftp.close()
-    transport.close()
     return {"uploaded": uploaded, "skipped": skipped}
 
 
+def _import_exceeds_threshold():
+    try:
+        from .disk_monitor import exceeds_threshold
+    except ImportError:
+        from disk_monitor import exceeds_threshold
+    return exceeds_threshold
+
+
 def main(argv: list[str] | None = None) -> int:
-    from disk_monitor import exceeds_threshold
+    exceeds_threshold = _import_exceeds_threshold()
 
     parser = argparse.ArgumentParser(description="Sync local dirs to FTP/SFTP storage.")
     parser.add_argument("--local-root", default=".", help="Repository root")
@@ -189,8 +212,8 @@ def main(argv: list[str] | None = None) -> int:
     remote_root = _env("FTP_ROOT_DIR", "/runpod-backups")
     port = int(_env("FTP_PORT", "21" if args.protocol == "ftp" else "22"))
 
-    if not host or not user:
-        print("FTP_HOST and FTP_USER must be set", file=sys.stderr)
+    if not host or not user or not password:
+        print("FTP_HOST, FTP_USER, and FTP_PASS must be set", file=sys.stderr)
         return 2
 
     if args.dry_run:
@@ -198,15 +221,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     sync_fn = sync_ftp if args.protocol == "ftp" else sync_sftp
-    stats = sync_fn(
-        local_root,
-        DEFAULT_UPLOAD_DIRS,
-        host=host,
-        port=port,
-        user=user,
-        password=password,
-        remote_root=remote_root,
-    )
+    try:
+        stats = sync_fn(
+            local_root,
+            DEFAULT_UPLOAD_DIRS,
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            remote_root=remote_root,
+        )
+    except (RuntimeError, ImportError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     print(f"done: uploaded={stats['uploaded']} skipped={stats['skipped']}")
     return 0
 

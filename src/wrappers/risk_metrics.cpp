@@ -23,6 +23,9 @@ void sort_copy(const std::vector<float>& returns, std::vector<float>& sorted) {
 }  // namespace
 
 float compute_var(const std::vector<float>& returns, float alpha) {
+    if (alpha <= 0.0f || alpha >= 1.0f) {
+        return 0.0f;
+    }
     if (returns.empty()) {
         return 0.0f;
     }
@@ -34,6 +37,9 @@ float compute_var(const std::vector<float>& returns, float alpha) {
 }
 
 float compute_cvar(const std::vector<float>& returns, float alpha) {
+    if (alpha <= 0.0f || alpha >= 1.0f) {
+        return 0.0f;
+    }
     if (returns.empty()) {
         return 0.0f;
     }
@@ -90,7 +96,6 @@ WarningStateResult compute_warning_state(const WarningStateParams& params) {
     result.state = WarningState::GREEN;
     result.triggered_metrics = 0;
 
-    // Helper lambda: Check each metric and update state
     auto check_solvency = [&]() {
         int solvency_level = 0;  // 0=GREEN, 1=YELLOW, 2=RED, 3=CRITICAL
         std::string solvency_msg;
@@ -171,23 +176,19 @@ WarningStateResult compute_warning_state(const WarningStateParams& params) {
         return std::make_pair(cvar_level, cvar_msg);
     };
 
-    // Evaluate each metric
     auto [solvency_level, solvency_msg] = check_solvency();
     auto [drawdown_level, drawdown_msg] = check_drawdown();
     auto [exposure_level, exposure_msg] = check_exposure();
     auto [cvar_level, cvar_msg] = check_cvar();
 
-    // Determine overall state and triggered metrics
     int max_level = std::max({solvency_level, drawdown_level, exposure_level, cvar_level});
     result.state = static_cast<WarningState>(max_level);
 
-    // Record triggered metrics (bitmask)
     if (solvency_level > 0) result.triggered_metrics |= (1 << 0);
     if (drawdown_level > 0) result.triggered_metrics |= (1 << 1);
     if (exposure_level > 0) result.triggered_metrics |= (1 << 2);
     if (cvar_level > 0) result.triggered_metrics |= (1 << 3);
 
-    // Build reason string
     std::string state_name;
     switch (result.state) {
         case WarningState::GREEN:    state_name = "GREEN"; break;
