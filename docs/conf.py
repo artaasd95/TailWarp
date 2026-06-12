@@ -23,6 +23,7 @@ extensions = [
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "furo"
+html_logo = "../assets/logo.png"
 html_theme_options = {
     "dark_css_variables": {
         "color-brand-primary": "#7c9cff",
